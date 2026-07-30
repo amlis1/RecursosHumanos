@@ -15,7 +15,9 @@ from datetime import datetime, date, timedelta
 from io import BytesIO
 from django.db.models import Q, Count, Sum
 from .models import Departamento, Empleado, SolicitudPermiso, TurnoGuardia, Sustitucion
-
+import os
+import base64
+import resend
 
 class CustomLoginView(LoginView):
     template_name = 'registration/login.html'
@@ -1243,34 +1245,56 @@ def reporte_pdf(request):
     response['Content-Transfer-Encoding'] = 'binary'
     return response
 
-
 @csrf_exempt
 @login_required(login_url='login')
 @admin_required
 def enviar_reporte(request):
     if request.method != 'POST':
-        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+        return JsonResponse(
+            {'success': False, 'error': 'Método no permitido'},
+            status=405
+        )
 
     try:
         data = json.loads(request.body)
         email_destino = data.get('email', '').strip()
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'JSON inválido'}, status=400)
+        return JsonResponse(
+            {'success': False, 'error': 'JSON inválido'},
+            status=400
+        )
 
     if not email_destino:
-        return JsonResponse({'success': False, 'error': 'Correo electrónico requerido'}, status=400)
+        return JsonResponse(
+            {'success': False, 'error': 'Correo electrónico requerido'},
+            status=400
+        )
 
-    if not EMAIL_HOST_USER:
-        return JsonResponse({
-            'success': False,
-            'error': 'Configura el correo y contraseña en settings.py (EMAIL_HOST_USER y EMAIL_HOST_PASSWORD)'
-        }, status=400)
+    resend_api_key = os.environ.get('RESEND_API_KEY', '').strip()
+
+    if not resend_api_key:
+        return JsonResponse(
+            {
+                'success': False,
+                'error': 'La variable RESEND_API_KEY no está configurada'
+            },
+            status=500
+        )
 
     ausentismo_data = []
+
     for dept in Departamento.objects.all():
         total = dept.empleados.count()
-        ausentes = dept.empleados.filter(estado__in=['vacaciones', 'licencia']).count()
-        porcentaje = round((ausentes / total * 100), 1) if total > 0 else 0
+
+        ausentes = dept.empleados.filter(
+            estado__in=['vacaciones', 'licencia']
+        ).count()
+
+        porcentaje = (
+            round((ausentes / total * 100), 1)
+            if total > 0 else 0
+        )
+
         ausentismo_data.append({
             'departamento': dept.nombre,
             'total_empleados': total,
@@ -1281,45 +1305,109 @@ def enviar_reporte(request):
     vacaciones_data = list(
         Empleado.objects.filter(estado='activo')
         .order_by('apellidos')
-        .values('nombres', 'apellidos', 'dias_vacaciones_pendientes', 'dias_vacaciones_tomados')
+        .values(
+            'nombres',
+            'apellidos',
+            'dias_vacaciones_pendientes',
+            'dias_vacaciones_tomados'
+        )
     )
 
     total_empleados = Empleado.objects.count()
     total_departamentos = Departamento.objects.count()
-    total_ausentes = sum(d['ausentes'] for d in ausentismo_data)
-    promedio_ausentismo = round((total_ausentes / total_empleados * 100), 2) if total_empleados > 0 else 0
+    total_ausentes = sum(
+        dato['ausentes']
+        for dato in ausentismo_data
+    )
 
-    html = render_to_string('Vacaciones/reporte_pdf.html', {
-        'ausentismo_data': ausentismo_data,
-        'vacaciones_data': vacaciones_data,
-        'total_empleados': total_empleados,
-        'total_departamentos': total_departamentos,
-        'promedio_ausentismo': promedio_ausentismo,
-        'fecha': timezone.now().strftime('%d/%m/%Y %H:%M'),
-    })
+    promedio_ausentismo = (
+        round((total_ausentes / total_empleados * 100), 2)
+        if total_empleados > 0 else 0
+    )
+
+    html = render_to_string(
+        'Vacaciones/reporte_pdf.html',
+        {
+            'ausentismo_data': ausentismo_data,
+            'vacaciones_data': vacaciones_data,
+            'total_empleados': total_empleados,
+            'total_departamentos': total_departamentos,
+            'promedio_ausentismo': promedio_ausentismo,
+            'fecha': timezone.now().strftime('%d/%m/%Y %H:%M'),
+        }
+    )
 
     if pisa is None:
-        return JsonResponse({'success': False, 'error': 'xhtml2pdf no está instalado'}, status=500)
+        return JsonResponse(
+            {
+                'success': False,
+                'error': 'xhtml2pdf no está instalado'
+            },
+            status=500
+        )
 
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html.encode('UTF-8')), result, encoding='UTF-8')
+    resultado_pdf = BytesIO()
+
+    pdf = pisa.pisaDocument(
+        BytesIO(html.encode('UTF-8')),
+        resultado_pdf,
+        encoding='UTF-8'
+    )
+
     if pdf.err:
-        return JsonResponse({'success': False, 'error': 'Error generando PDF'}, status=500)
+        return JsonResponse(
+            {
+                'success': False,
+                'error': 'Error generando PDF'
+            },
+            status=500
+        )
 
     try:
-        email = EmailMessage(
-            subject='REPORTE EXPORTADO',
-            body='Adjunto se encuentra el reporte exportado del sistema de Recursos Humanos.',
-            from_email=EMAIL_HOST_USER,
-            to=[email_destino],
+        resend.api_key = resend_api_key
+
+        pdf_base64 = base64.b64encode(
+            resultado_pdf.getvalue()
+        ).decode('utf-8')
+
+        respuesta = resend.Emails.send({
+            'from': os.environ.get(
+                'RESEND_FROM_EMAIL',
+                'Sistema RRHH <onboarding@resend.dev>'
+            ),
+            'to': [email_destino],
+            'subject': 'REPORTE EXPORTADO',
+            'html': """
+                <h2>Reporte de Recursos Humanos</h2>
+                <p>
+                    Adjunto se encuentra el reporte exportado
+                    del sistema de Recursos Humanos.
+                </p>
+            """,
+            'attachments': [
+                {
+                    'filename': 'reporte_rrhh.pdf',
+                    'content': pdf_base64,
+                }
+            ],
+        })
+
+        if not respuesta:
+            raise Exception('Resend no devolvió una respuesta válida')
+
+    except Exception as error:
+        return JsonResponse(
+            {
+                'success': False,
+                'error': f'Error al enviar correo: {str(error)}'
+            },
+            status=500
         )
-        email.attach('reporte_rrhh.pdf', result.getvalue(), 'application/pdf')
-        email.send()
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': f'Error al enviar correo: {str(e)}'}, status=500)
 
-    return JsonResponse({'success': True, 'message': 'Reporte enviado exitosamente'})
-
+    return JsonResponse({
+        'success': True,
+        'message': 'Reporte enviado exitosamente'
+    })
 
 # ─── API Endpoints ────────────────────────────────────────────────────────────
 
