@@ -1,0 +1,254 @@
+{% extends 'PlantillaGeneral.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="mb-0"><i class="fas fa-building mr-2"></i>Departamentos</h2>
+        <a href="{% url 'Vacaciones:departamento_crear' %}" class="btn btn-primary">
+            <i class="fas fa-plus mr-1"></i>Nuevo Departamento
+        </a>
+    </div>
+</div>
+
+<div class="card shadow">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="tablaDepartamentos" class="table table-hover table-striped w-100 mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th>Jefe de Depto</th>
+                        <th>Fecha Creación</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for depto in departamentos_list %}
+                    <tr>
+                        <td class="align-middle">{{ depto.nombre }}</td>
+                        <td class="align-middle">{{ depto.descripcion|default:"-" }}</td>
+                        <td class="align-middle">{{ depto.jefe_departamento|default:"-" }}</td>
+                        <td class="align-middle">{{ depto.fecha_creacion|date:"Y-m-d" }}</td>
+                        <td class="text-center align-middle">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a class="btn btn-info btn-sm" href="{% url 'Vacaciones:departamento_editar' pk=depto.id %}" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-danger btn-delete" 
+                                    data-id="{{ depto.id }}"
+                                    title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                <button class="btn btn-warning btn-qr"
+                                    data-info="Depto: {{ depto.nombre }} | Jefe: {{ depto.jefe_departamento|default:'-' }}"
+                                    title="Generar QR">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Create/Edit -->
+<div class="modal fade" id="modalDepto" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDeptoTitle">Nuevo Departamento</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formDepto">
+                {% csrf_token %}
+                <input type="hidden" id="deptId" name="deptId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="nombre">Nombre <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="nombre" name="nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="descripcion">Descripción</label>
+                        <textarea class="form-control" id="descripcion" name="descripcion" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="jefe_departamento">Jefe de Departamento</label>
+                        <input type="text" class="form-control" id="jefe_departamento" name="jefe_departamento">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardar">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal QR -->
+<div class="modal fade" id="modalQr" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title">Código QR</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="qrCodeContainer" class="p-3 d-inline-block rounded"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        var tabla = $('#tablaDepartamentos').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            pageLength: 10,
+            responsive: true,
+            order: [[0, 'asc']]
+        });
+
+        $('#formDepto').validate({
+            rules: {
+                nombre: { required: true, minlength: 2 }
+            },
+            messages: {
+                nombre: { required: "Este campo es requerido", minlength: "Mínimo 2 caracteres" }
+            },
+            errorElement: 'span',
+            errorPlacement: function (error, element) {
+                error.addClass('invalid-feedback');
+                element.closest('.form-group').append(error);
+            },
+            highlight: function (element) {
+                $(element).addClass('is-invalid');
+            },
+            unhighlight: function (element) {
+                $(element).removeClass('is-invalid');
+            },
+            submitHandler: function(form) {
+                var deptId = $('#deptId').val();
+                var isEdit = deptId !== '';
+                var url = isEdit ? "{% url 'Vacaciones:departamento_editar' pk=0 %}".replace('0', deptId) : "{% url 'Vacaciones:departamento_crear' %}";
+                
+                var data = {
+                    nombre: $('#nombre').val(),
+                    descripcion: $('#descripcion').val(),
+                    jefe_departamento: $('#jefe_departamento').val()
+                };
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: { 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() },
+                    success: function(res) {
+                        $('#modalDepto').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: isEdit ? 'Departamento actualizado' : 'Departamento creado',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => { location.reload(); });
+                    },
+                    error: function(err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Ocurrió un error al guardar'
+                        });
+                    }
+                });
+                return false;
+            }
+        });
+
+        $('#btnNuevoDepto').click(function() {
+            $('#formDepto')[0].reset();
+            $('#deptId').val('');
+            $('#modalDeptoTitle').text('Nuevo Departamento');
+            $('#formDepto').validate().resetForm();
+            $('.is-invalid').removeClass('is-invalid');
+            $('#modalDepto').modal('show');
+        });
+
+        $('.btn-edit').click(function() {
+            var btn = $(this);
+            $('#deptId').val(btn.data('id'));
+            $('#nombre').val(btn.data('nombre'));
+            $('#descripcion').val(btn.data('descripcion'));
+            $('#jefe_departamento').val(btn.data('jefe'));
+            
+            $('#modalDeptoTitle').text('Editar Departamento');
+            $('#formDepto').validate().resetForm();
+            $('.is-invalid').removeClass('is-invalid');
+            $('#modalDepto').modal('show');
+        });
+
+        $('.btn-delete').click(function() {
+            var id = $(this).data('id');
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "No podrás revertir esta acción",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    var url = "{% url 'Vacaciones:departamento_eliminar' pk=0 %}".replace('0', id);
+                    $.ajax({
+                        url: url,
+                        type: 'POST',
+                        headers: { 'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val() },
+                        success: function() {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Eliminado',
+                                text: 'El departamento ha sido eliminado',
+                                showConfirmButton: false,
+                                timer: 1500
+                            }).then(() => { location.reload(); });
+                        },
+                        error: function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: 'Ocurrió un error al eliminar'
+                            });
+                        }
+                    });
+                }
+            });
+        });
+
+        $('.btn-qr').click(function() {
+            var info = $(this).data('info');
+            var qr = qrcode(0, 'M');
+            qr.addData(info);
+            qr.make();
+            var imgTag = qr.createImgTag(4);
+            $('#qrCodeContainer').html(imgTag);
+            $('#modalQr').modal('show');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,247 @@
+{% load static %}
+<!doctype html>
+<html class="no-js" lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{% block title %}Gestor de Turnos y Vacaciones RRHH{% endblock %}</title>
+    <meta name="description" content="Sistema de Gestión de Recursos Humanos">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <!-- CSS theme files -->
+    <link rel="stylesheet" href="{% static 'assets/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/owl.carousel.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/flaticon.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/price_rangs.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/slicknav.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/animate.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/magnific-popup.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/fontawesome-all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/themify-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/slick.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/nice-select.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+
+    <!-- CDN CSS Plugin Files -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.css">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap4-theme@1.0.0/dist/select2-bootstrap4.min.css" rel="stylesheet" />
+    <style>
+        .form-group label {
+            margin-bottom: 6px !important;
+            display: inline-block;
+            font-weight: 600;
+        }
+        label.error {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 4px;
+            font-weight: normal !important;
+            display: block;
+        }
+        .is-invalid {
+            border-color: #dc3545 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Preloader Start -->
+    <div id="preloader-active">
+        <div class="preloader d-flex align-items-center justify-content-center">
+            <div class="preloader-inner position-relative">
+                <div class="preloader-circle"></div>
+                <div class="preloader-img pere-text">
+                    <img src="{% static 'assets/img/logo/logo.png' %}" alt="Logo">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Preloader End -->
+
+    <header>
+        <!-- Header Start -->
+       <div class="header-area header-transparrent">
+           <div class="headder-top header-sticky">
+                <div class="container-fluid px-4">
+                    <div class="row align-items-center">
+                        <div class="col-lg-2 col-md-2">
+                            <!-- Logo -->
+                            <div class="logo">
+                                <a href="{% url 'Vacaciones:index' %}"><img src="{% static 'assets/img/logo/logo.png' %}" alt="RRHH Logo" style="max-height: 45px;"></a>
+                            </div>  
+                        </div>
+                        <div class="col-lg-10 col-md-10">
+                            <div class="menu-wrapper">
+                                <!-- Main-menu -->
+                                <div class="main-menu">
+                                    <nav class="d-none d-lg-block">
+                                        <ul id="navigation" class="d-flex justify-content-end align-items-center" style="white-space: nowrap;">
+                                            {% if user.is_superuser %}
+                                            <li id="nav-dashboard" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}"><a href="{% url 'Vacaciones:dashboard' %}" style="padding: 25px 12px;">Dashboard</a></li>
+                                            <li id="nav-empleados" class="{% if 'empleado' in request.resolver_match.url_name %}active{% endif %}"><a href="{% url 'Vacaciones:empleados_lista' %}" style="padding: 25px 12px;">Empleados</a></li>
+                                            <li id="nav-departamentos" class="{% if 'departamento' in request.resolver_match.url_name %}active{% endif %}"><a href="{% url 'Vacaciones:departamentos_lista' %}" style="padding: 25px 12px;">Departamentos</a></li>
+                                            {% endif %}
+                                            <li id="nav-permisos" class="{% if 'permiso' in request.resolver_match.url_name %}active{% endif %}"><a href="{% url 'Vacaciones:permisos_lista' %}" style="padding: 25px 12px;">Permisos</a></li>
+                                            <li id="nav-turnos" class="{% if 'turno' in request.resolver_match.url_name %}active{% endif %}"><a href="{% url 'Vacaciones:turnos_lista' %}" style="padding: 25px 12px;">Turnos</a></li>
+                                            <li id="nav-sustituciones" class="{% if 'sustitucion' in request.resolver_match.url_name %}active{% endif %}"><a href="{% url 'Vacaciones:sustituciones_lista' %}" style="padding: 25px 12px;">Sustituciones</a></li>
+                                            <li id="nav-calendario" class="{% if request.resolver_match.url_name == 'calendario' %}active{% endif %}"><a href="{% url 'Vacaciones:calendario' %}" style="padding: 25px 12px;">Calendario</a></li>
+                                            {% if user.is_superuser %}
+                                            <li id="nav-reportes" class="{% if request.resolver_match.url_name == 'reportes' %}active{% endif %}"><a href="{% url 'Vacaciones:reportes' %}" style="padding: 25px 12px;">Reportes</a></li>
+                                            {% endif %}
+                                            {% if user.is_authenticated %}
+                                            <li>
+                                                <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" style="background:none; border:none; padding: 25px 12px; color: #dc3545; cursor:pointer;">
+                                                        <i class="fas fa-sign-out-alt mr-1"></i>Salir
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                </div>          
+                            </div>
+                        </div>
+                        <!-- Mobile Menu -->
+                        <div class="col-12">
+                            <div class="mobile_menu d-block d-lg-none"></div>
+                        </div>
+                    </div>
+                </div>
+           </div>
+       </div>
+        <!-- Header End -->
+    </header>
+
+    <main>
+        <div class="container py-4">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <footer>
+        <div class="footer-bottom-area footer-bg mt-5">
+            <div class="container">
+                <div class="footer-border">
+                     <div class="row d-flex justify-content-between align-items-center">
+                         <div class="col-xl-10 col-lg-10">
+                             <div class="footer-copy-right">
+                                 <p>Copyright &copy;<script>document.write(new Date().getFullYear());</script> Gestor de Turnos y Vacaciones de Recursos Humanos.</p>
+                             </div>
+                         </div>
+                     </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JS files -->
+    <script src="{% static 'assets/js/vendor/modernizr-3.5.0.min.js' %}"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui-touch-punch/0.2.3/jquery.ui.touch-punch.min.js"></script>
+    
+    <script src="{% static 'assets/js/popper.min.js' %}"></script>
+    <script src="{% static 'assets/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.slicknav.min.js' %}"></script>
+    <script src="{% static 'assets/js/owl.carousel.min.js' %}"></script>
+    <script src="{% static 'assets/js/slick.min.js' %}"></script>
+    <script src="{% static 'assets/js/price_rangs.js' %}"></script>
+    <script src="{% static 'assets/js/wow.min.js' %}"></script>
+    <script src="{% static 'assets/js/animated.headline.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.magnific-popup.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.scrollUp.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.nice-select.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.sticky.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.validate.min.js' %}"></script>
+    <script src="{% static 'assets/js/plugins.js' %}"></script>
+    <script src="{% static 'assets/js/main.js' %}"></script>
+
+    <!-- CDN Plugin JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.9/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hotkeys-js@3.13.7/dist/hotkeys.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.3.1/dist/driver.js.iife.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+    <script>
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap4',
+            width: '100%',
+            placeholder: function() { return $(this).data('placeholder') || 'Seleccione...'; },
+            allowClear: true,
+            language: {
+                noResults: function() { return 'No se encontraron resultados'; },
+                searching: function() { return 'Buscando...'; }
+            }
+        });
+    });
+    function getCookie(name) {
+        var cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            var cookies = document.cookie.split(';');
+            for (var i = 0; i < cookies.length; i++) {
+                var cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    var csrftoken = getCookie('csrftoken');
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        }
+    });
+    </script>
+
+    <script>
+    $(document).ready(function() {
+        {% if request.session.show_welcome %}
+        Swal.fire({
+            title: '¡Bienvenido, {{ user.first_name|default:user.username }}!',
+            text: '¿Quieres iniciar un tutorial rápido para conocer el sistema?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, iniciar tutorial',
+            cancelButtonText: 'No, gracias',
+            reverseButtons: true,
+            allowOutsideClick: false,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.getJSON('{% url "tutorial_pasos" %}', function(data) {
+                    const driver = window.driver.js.driver({
+                        showProgress: true,
+                        steps: data.pasos,
+                        onDestroyed: function() {
+                            $.get('{% url "clear_welcome" %}');
+                        }
+                    });
+                    driver.drive();
+                });
+            } else {
+                $.get('{% url "clear_welcome" %}');
+            }
+        });
+        {% endif %}
+    });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

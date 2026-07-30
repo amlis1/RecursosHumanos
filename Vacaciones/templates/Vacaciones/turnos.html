@@ -1,0 +1,511 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block content %}
+
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="font-weight-bold mb-0"><i class="fas fa-clock mr-2"></i>Gestión de Turnos</h2>
+        {% if user.is_superuser %}
+        <a href="{% url 'Vacaciones:turno_crear' %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-plus mr-1"></i> Nuevo Turno
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+
+<div class="card shadow mb-4">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered w-100 mb-0" id="turnosTable">
+                <thead class="thead-light">
+                    <tr>
+                        <th style="width: 40px;" class="text-center"></th>
+                        <th>Empleado</th>
+                        <th>Departamento</th>
+                        <th>Fecha</th>
+                        <th>Turno</th>
+                        <th>Horas</th>
+                        <th>Observaciones</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tbodyTurnos">
+                    {% for turno in turnos_list %}
+                    <tr data-id="{{ turno.id }}">
+                        <td class="text-center align-middle">
+                            <i class="fas fa-grip-vertical drag-handle text-muted" style="cursor: grab;"></i>
+                        </td>
+                        <td class="align-middle font-weight-bold">
+                            {{ turno.empleado.nombres }} {{ turno.empleado.apellidos }}
+                        </td>
+                        <td class="align-middle text-muted">
+                            {{ turno.empleado.departamento.nombre|default:"-" }}
+                        </td>
+                        <td class="align-middle">
+                            <i class="far fa-calendar-alt text-muted mr-1"></i> {{ turno.fecha|date:"d/m/Y" }}
+                        </td>
+                        <td class="align-middle">
+                            {% if turno.turno == 'manana' %}
+                                <span class="badge badge-success px-2 py-1"><i class="fas fa-sun mr-1"></i> Mañana</span>
+                            {% elif turno.turno == 'tarde' %}
+                                <span class="badge badge-warning px-2 py-1"><i class="fas fa-cloud-sun mr-1"></i> Tarde</span>
+                            {% else %}
+                                <span class="badge badge-primary px-2 py-1"><i class="fas fa-moon mr-1"></i> Noche</span>
+                            {% endif %}
+                            <small class="d-block text-muted mt-1">{{ turno.get_turno_display }}</small>
+                        </td>
+                        <td class="align-middle text-center font-weight-bold">{{ turno.horas }}</td>
+                        <td class="align-middle">
+                            <span class="text-truncate d-inline-block" style="max-width: 180px;" title="{{ turno.observaciones }}">
+                                {{ turno.observaciones|default:"-" }}
+                            </span>
+                        </td>
+                        <td class="align-middle text-center">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-warning btn-sm text-dark btn-qr" data-info="Turno: {{ turno.get_turno_display }} | Fecha: {{ turno.fecha|date:'d/m/Y' }} | Empleado: {{ turno.empleado.nombres }} {{ turno.empleado.apellidos }}" title="Código QR">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                                <a class="btn btn-info btn-sm" href="{% url 'Vacaciones:turno_editar' pk=turno.id %}" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-danger btn-sm" onclick="deleteTurno({{ turno.id }})" title="Eliminar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Turno -->
+<div class="modal fade" id="turnoModal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold" id="modalTitle">Nuevo Turno</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formTurno">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="turnoId" name="turnoId">
+                    
+                    <div class="form-group mb-3">
+                        <label for="empleado_id" class="text-muted mb-1">Empleado <span class="text-danger">*</span></label>
+                        <select class="form-control" id="empleado_id" name="empleado_id" required>
+                            <option value="">Seleccione un empleado...</option>
+                            <!-- Options loaded via AJAX -->
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="fecha" class="text-muted mb-1">Fecha <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="fecha" name="fecha" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="horas" class="text-muted mb-1">Horas <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="horas" name="horas" value="8" min="1" max="24" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="turno" class="text-muted mb-1">Turno <span class="text-danger">*</span></label>
+                        <select class="form-control" id="turno" name="turno" required>
+                            <option value="">Seleccione un turno...</option>
+                            <option value="manana">Mañana (06:00 - 14:00)</option>
+                            <option value="tarde">Tarde (14:00 - 22:00)</option>
+                            <option value="noche">Noche (22:00 - 06:00)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group mb-3">
+                        <label for="observaciones" class="text-muted mb-1">Observaciones</label>
+                        <textarea class="form-control" id="observaciones" name="observaciones" rows="3" placeholder="Opcional..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pt-0">
+                    <button type="button" class="btn btn-outline-light rounded px-3" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary rounded px-4" id="btnSave">Guardar Turno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal QR -->
+<div class="modal fade" id="modalQr" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+        <div class="modal-content bg-dark text-light border-secondary shadow-lg">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title font-weight-bold"><i class="fas fa-qrcode mr-2 text-primary"></i>Código QR del Turno</h5>
+                <button type="button" class="close text-light" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <div id="qrCodeContainer" class="bg-white p-3 d-inline-block rounded shadow"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- jQuery UI for Drag and Drop -->
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+
+<script>
+function getToday() {
+    return new Date().toISOString().split('T')[0];
+}
+
+$(document).ready(function() {
+    $.validator.addMethod("fechaFutura", function(value, element) {
+        if (this.optional(element)) return true;
+        return value >= getToday();
+    }, "La fecha debe ser a partir de hoy.");
+
+    // Initialize DataTable
+    var table = $('#turnosTable').DataTable({
+        language: {
+            url: 'https://cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+        },
+        columnDefs: [
+            { orderable: false, targets: [0, 7] } // Disable sorting on drag handle and actions
+        ],
+        order: [[3, 'desc']], // Sort by date descending
+        pageLength: 25,
+        dom: '<"row mt-3 px-3"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rt<"row px-3 pb-3"<"col-sm-12 col-md-5"i><"col-sm-12 col-md-7"p>>',
+        drawCallback: function(settings) {
+            setupDragAndDropSwap();
+        }
+    });
+
+    // Load employees for select
+    loadEmpleados();
+
+    $('#turnoModal').on('shown.bs.modal', function() {
+        $('#fecha').attr('min', getToday());
+    });
+
+    // Form Validation Setup
+    $('#formTurno').validate({
+        rules: {
+            empleado_id: { required: true },
+            fecha: { required: true, date: true, fechaFutura: true },
+            turno: { required: true },
+            horas: { required: true, number: true, min: 1, max: 24 }
+        },
+        messages: {
+            empleado_id: "Por favor seleccione un empleado",
+            fecha: { required: "Por favor seleccione una fecha", date: "Fecha inválida", fechaFutura: "La fecha debe ser a partir de hoy." },
+            turno: "Por favor seleccione un turno",
+            horas: "Ingrese un número válido de horas (1-24)"
+        },
+        errorElement: 'span',
+        errorPlacement: function (error, element) {
+            error.addClass('invalid-feedback');
+            element.closest('.form-group').append(error);
+        },
+        highlight: function (element, errorClass, validClass) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function (element, errorClass, validClass) {
+            $(element).removeClass('is-invalid');
+        },
+        submitHandler: function(form) {
+            saveTurno();
+            return false;
+        }
+    });
+    
+    // Initial setup of drag and drop
+    setupDragAndDropSwap();
+
+    // QR click handler
+    $('#turnosTable tbody').on('click', '.btn-qr', function() {
+        var info = $(this).data('info');
+        if (typeof qrcode !== 'undefined') {
+            var qr = qrcode(0, 'M');
+            qr.addData(info);
+            qr.make();
+            var imgTag = qr.createImgTag(5);
+            $('#qrCodeContainer').html(imgTag);
+            $('#modalQr').modal('show');
+        } else {
+            Swal.fire({ icon: 'info', title: 'Código QR', text: info, background: '#1e1e1e', color: '#e2e8f0' });
+        }
+    });
+});
+
+function loadEmpleados() {
+    $.ajax({
+        url: "{% url 'Vacaciones:api_empleados' %}",
+        type: 'GET',
+        success: function(response) {
+            var select = $('#empleado_id');
+            select.find('option:not(:first)').remove();
+            
+            var data = response.empleados || response;
+            if (Array.isArray(data)) {
+                data.forEach(function(emp) {
+                    select.append(`<option value="${emp.id}">${emp.nombres} ${emp.apellidos}</option>`);
+                });
+            }
+        },
+        error: function(err) {
+            console.error("Error al cargar empleados", err);
+        }
+    });
+}
+
+function openModal() {
+    $('#formTurno')[0].reset();
+    $('#formTurno').validate().resetForm();
+    $('#formTurno .is-invalid').removeClass('is-invalid');
+    $('#turnoId').val('');
+    $('#modalTitle').text('Nuevo Turno');
+    $('#turnoModal').modal('show');
+}
+
+function editTurno(id, empleadoId, fecha, turno, horas, observaciones) {
+    $('#formTurno')[0].reset();
+    $('#formTurno').validate().resetForm();
+    $('#formTurno .is-invalid').removeClass('is-invalid');
+    
+    $('#turnoId').val(id);
+    $('#empleado_id').val(empleadoId);
+    $('#fecha').val(fecha);
+    $('#turno').val(turno);
+    $('#horas').val(horas);
+    $('#observaciones').val(observaciones === 'None' ? '' : observaciones);
+    
+    $('#modalTitle').text('Editar Turno');
+    $('#turnoModal').modal('show');
+}
+
+function saveTurno() {
+    var id = $('#turnoId').val();
+    var url = id ? "{% url 'Vacaciones:turno_editar' pk=0 %}".replace('0', id) : "{% url 'Vacaciones:turno_crear' %}";
+    
+    var data = {
+        empleado_id: $('#empleado_id').val(),
+        fecha: $('#fecha').val(),
+        turno: $('#turno').val(),
+        horas: $('#horas').val(),
+        observaciones: $('#observaciones').val(),
+        csrfmiddlewaretoken: $('input[name=csrfmiddlewaretoken]').val()
+    };
+
+    var btn = $('#btnSave');
+    var originalText = btn.text();
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Guardando...');
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        data: data,
+        success: function(response) {
+            $('#turnoModal').modal('hide');
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'El turno ha sido guardado correctamente.',
+                background: '#1e1e1e',
+                color: '#e2e8f0',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: xhr.responseJSON?.message || 'Ocurrió un error al guardar el turno.',
+                background: '#1e1e1e',
+                color: '#e2e8f0'
+            });
+            btn.prop('disabled', false).text(originalText);
+        }
+    });
+}
+
+function deleteTurno(id) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "¡Esta acción no se puede deshacer!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#4b5563',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        background: '#1e1e1e',
+        color: '#e2e8f0'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{% url 'Vacaciones:turno_eliminar' pk=0 %}".replace('0', id),
+                type: 'POST',
+                data: {
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Eliminado!',
+                        text: 'El turno ha sido eliminado.',
+                        background: '#1e1e1e',
+                        color: '#e2e8f0',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        location.reload();
+                    });
+                },
+                error: function() {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Ocurrió un error al eliminar el turno.',
+                        background: '#1e1e1e',
+                        color: '#e2e8f0'
+                    });
+                }
+            });
+        }
+    });
+}
+
+function setupDragAndDropSwap() {
+    // Destroy previous droppable and draggable instances if exist
+    if ($('#tbodyTurnos tr').hasClass('ui-droppable')) {
+        $('#tbodyTurnos tr').droppable('destroy');
+    }
+    if ($('#tbodyTurnos tr').hasClass('ui-draggable')) {
+        $('#tbodyTurnos tr').draggable('destroy');
+    }
+
+    // Set up Draggable
+    $('#tbodyTurnos tr').draggable({
+        handle: '.drag-handle',
+        helper: function() {
+            var $original = $(this);
+            var $clone = $original.clone();
+            $clone.css({
+                'background-color': '#2d2d2d',
+                'color': '#e2e8f0',
+                'border-radius': '0.5rem',
+                'box-shadow': '0 10px 25px rgba(0,0,0,0.5)',
+                'display': 'table',
+                'width': $original.width() + 'px'
+            });
+            $clone.children().each(function(index) {
+                $(this).width($original.children().eq(index).width());
+            });
+            return $clone;
+        },
+        cursor: 'grabbing',
+        cursorAt: { top: 20, left: 20 },
+        zIndex: 9999,
+        revert: 'invalid', // Return to original position if not dropped on a droppable
+        opacity: 0.9,
+        start: function(event, ui) {
+            $(this).css('opacity', '0.5');
+        },
+        stop: function(event, ui) {
+            $(this).css('opacity', '1');
+        }
+    });
+
+    // Set up Droppable
+    $('#tbodyTurnos tr').droppable({
+        accept: '#tbodyTurnos tr',
+        hoverClass: 'bg-primary bg-opacity-25 shadow-inner',
+        tolerance: 'pointer',
+        drop: function(event, ui) {
+            var $source = ui.draggable;
+            var $target = $(this);
+            
+            var sourceId = $source.data('id');
+            var targetId = $target.data('id');
+            
+            var sourceName = $source.find('td:eq(1)').text().trim();
+            var targetName = $target.find('td:eq(1)').text().trim();
+
+            if (sourceId && targetId && sourceId !== targetId) {
+                Swal.fire({
+                    title: '¿Intercambiar turnos?',
+                    html: `Se intercambiarán los turnos de:<br><div class="mt-3 py-2 px-3 bg-dark rounded border border-secondary d-flex justify-content-between align-items-center"><span><b>${sourceName}</b></span> <i class="fas fa-exchange-alt text-primary mx-3"></i> <span><b>${targetName}</b></span></div>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3b82f6',
+                    cancelButtonColor: '#4b5563',
+                    confirmButtonText: 'Sí, intercambiar',
+                    cancelButtonText: 'Cancelar',
+                    background: '#1e1e1e',
+                    color: '#e2e8f0',
+                    customClass: {
+                        htmlContainer: 'text-left'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        intercambiarTurnos(sourceId, targetId);
+                    }
+                });
+            }
+        }
+    });
+}
+
+function intercambiarTurnos(id1, id2) {
+    $.ajax({
+        url: "{% url 'Vacaciones:turno_intercambiar' %}",
+        type: 'POST',
+        data: {
+            turno_id_1: id1,
+            turno_id_2: id2,
+            motivo: 'Intercambio por arrastre visual',
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Intercambio exitoso!',
+                text: 'Los turnos han sido intercambiados.',
+                background: '#1e1e1e',
+                color: '#e2e8f0',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => {
+                location.reload();
+            });
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: xhr.responseJSON?.message || 'No se pudo intercambiar los turnos.',
+                background: '#1e1e1e',
+                color: '#e2e8f0'
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

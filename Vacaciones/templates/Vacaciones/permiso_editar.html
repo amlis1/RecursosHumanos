@@ -1,0 +1,188 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block title %}Editar Solicitud - Recursos Humanos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="font-weight-bold text-primary mb-0">
+                <i class="fas fa-file-signature mr-2"></i>Actualizar Solicitud de Permiso
+            </h2>
+            <a href="{% url 'Vacaciones:permisos_lista' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left mr-1"></i>Volver a Solicitudes
+            </a>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-lg">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="card-title mb-0 font-weight-bold">Detalles de la Solicitud</h5>
+            </div>
+            <div class="card-body p-4">
+                <form id="formEditarPermiso">
+                    {% csrf_token %}
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Empleado *</label>
+                            <select class="form-control select2" name="empleado_id" id="empleado_id" required>
+                                <option value="">Seleccione Empleado...</option>
+                                {% for emp in empleados %}
+                                    <option value="{{ emp.id }}" {% if emp.id == permiso.empleado.id %}selected{% endif %}>{{ emp.apellidos }} {{ emp.nombres }} ({{ emp.cedula }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Tipo de Solicitud *</label>
+                            <select class="form-control select2" name="tipo" id="tipo" required>
+                                <option value="">Seleccione Tipo...</option>
+                                {% for key, val in tipo_choices %}
+                                    <option value="{{ key }}" {% if key == permiso.tipo %}selected{% endif %}>{{ val }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Motivo *</label>
+                        <input type="text" class="form-control" name="motivo" id="motivo" value="{{ permiso.motivo }}" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label class="font-weight-bold">Fecha Inicio *</label>
+                            <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" value="{{ permiso.fecha_inicio|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="font-weight-bold">Fecha Fin *</label>
+                            <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" value="{{ permiso.fecha_fin|date:'Y-m-d' }}" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="font-weight-bold">Días Solicitados *</label>
+                            <input type="number" class="form-control" id="dias_solicitados" name="dias_solicitados" value="{{ permiso.dias_solicitados }}" min="1" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Observaciones</label>
+                        <textarea class="form-control" name="observaciones" id="observaciones" rows="3">{{ permiso.observaciones }}</textarea>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'Vacaciones:permisos_lista' %}" class="btn btn-secondary mr-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save mr-1"></i>Actualizar Solicitud
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getTomorrow() {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+}
+
+$(document).ready(function() {
+    $('#fecha_inicio, #fecha_fin').attr('min', getTomorrow());
+
+    function calcularDias() {
+        const fi = $('#fecha_inicio').val();
+        const ff = $('#fecha_fin').val();
+        if (fi && ff) {
+            const d1 = new Date(fi);
+            const d2 = new Date(ff);
+            if (d2 >= d1) {
+                const diffTime = Math.abs(d2 - d1);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                $('#dias_solicitados').val(diffDays);
+            }
+        }
+    }
+
+    $('#fecha_inicio, #fecha_fin').on('change', calcularDias);
+
+    $.validator.addMethod("fechaFutura", function(value, element) {
+        if (this.optional(element)) return true;
+        return value >= getTomorrow();
+    }, "La fecha debe ser a partir de mañana.");
+
+    $.validator.addMethod("fechaFinMayorIgual", function(value, element) {
+        var fechaInicio = $('#fecha_inicio').val();
+        if (!fechaInicio || !value) return true;
+        return new Date(value) >= new Date(fechaInicio);
+    }, "La fecha fin debe ser mayor o igual a la fecha de inicio.");
+
+    $('#formEditarPermiso').validate({
+        rules: {
+            empleado_id: { required: true },
+            tipo: { required: true },
+            motivo: { required: true, minlength: 3 },
+            fecha_inicio: { required: true, fechaFutura: true },
+            fecha_fin: { required: true, fechaFutura: true, fechaFinMayorIgual: true },
+            dias_solicitados: { required: true, min: 1 },
+            observaciones: { required: true, minlength: 3 }
+        },
+        messages: {
+            empleado_id: { required: "Seleccione un empleado." },
+            tipo: { required: "Seleccione el tipo de solicitud." },
+            motivo: { required: "Ingrese el motivo de la solicitud.", minlength: "Mínimo 3 caracteres." },
+            fecha_inicio: { required: "Seleccione la fecha de inicio.", fechaFutura: "La fecha de inicio debe ser a partir de mañana." },
+            fecha_fin: { required: "Seleccione la fecha de fin.", fechaFutura: "La fecha fin debe ser a partir de mañana." },
+            dias_solicitados: { required: "Ingrese los días solicitados.", min: "Debe ser al menos 1 día." },
+            observaciones: { required: "Ingrese observaciones sobre la solicitud.", minlength: "Mínimo 3 caracteres." }
+        },
+        errorElement: 'span',
+        errorClass: 'error invalid-feedback',
+        highlight: function(element) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function(element) {
+            $(element).removeClass('is-invalid');
+        },
+        submitHandler: function(form) {
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => { data[key] = value; });
+
+            $.ajax({
+                url: "{% url 'Vacaciones:permiso_editar' pk=permiso.id %}",
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                success: function(resp) {
+                    if (resp.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Actualizado!',
+                            text: resp.message || 'Solicitud actualizada correctamente',
+                            confirmButtonText: 'Aceptar'
+                        }).then(() => {
+                            window.location.href = "{% url 'Vacaciones:permisos_lista' %}";
+                        });
+                    } else {
+                        Swal.fire('Error', resp.error || 'No se pudo actualizar la solicitud', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    let msg = 'Error en el servidor';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        msg = xhr.responseJSON.error;
+                    }
+                    Swal.fire('Error', msg, 'error');
+                }
+            });
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

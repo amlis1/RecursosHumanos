@@ -1,0 +1,357 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-dark m-0"><i class="fas fa-exchange-alt mr-2"></i>Gestión de Sustituciones</h2>
+        {% if user.is_superuser %}
+        <a href="{% url 'Vacaciones:sustitucion_crear' %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-plus mr-1"></i> Nueva Sustitución
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table id="sustitucionesTable" class="table table-striped table-hover w-100 mb-0">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Original</th>
+                            <th>Sustituto</th>
+                            <th>Fecha</th>
+                            <th>Turno</th>
+                            <th>Motivo</th>
+                            <th>Estado</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in sustituciones_list %}
+                        <tr>
+                            <td>{{ s.turno_original.empleado.nombres }} {{ s.turno_original.empleado.apellidos }}</td>
+                            <td>{{ s.empleado_sustituto.nombres }} {{ s.empleado_sustituto.apellidos }}</td>
+                            <td>{{ s.turno_original.fecha|date:"d/m/Y" }}</td>
+                            <td>{{ s.turno_original.get_turno_display }}</td>
+                            <td>{{ s.motivo|truncatechars:30 }}</td>
+                            <td>
+                                {% if s.estado == 'pendiente' %}
+                                    <span class="badge badge-warning">Pendiente</span>
+                                {% elif s.estado == 'aceptada' %}
+                                    <span class="badge badge-success">Aceptada</span>
+                                {% elif s.estado == 'completada' %}
+                                    <span class="badge badge-primary">Completada</span>
+                                {% elif s.estado == 'rechazada' %}
+                                    <span class="badge badge-danger">Rechazada</span>
+                                {% else %}
+                                    <span class="badge badge-secondary">{{ s.get_estado_display|default:s.estado }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center align-middle">
+                                {% if s.estado == 'pendiente' %}
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <button class="btn btn-success" title="Aceptar" onclick="aceptarSustitucion({{ s.id }})">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-danger" title="Rechazar" onclick="rechazarSustitucion({{ s.id }})">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                     <a class="btn btn-info" href="{% url 'Vacaciones:sustitucion_editar' pk=s.id %}" title="Editar">
+                                         <i class="fas fa-edit"></i>
+                                     </a>
+                                    <button class="btn btn-outline-danger" title="Eliminar" onclick="eliminarSustitucion({{ s.id }})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">No se encontraron sustituciones registradas.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Sustitucion -->
+<div class="modal fade" id="modalSustitucion" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold" id="modalSustitucionTitle">Nueva Sustitución</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formSust">
+                {% csrf_token %}
+                <input type="hidden" id="sustId" name="sustId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="turno_original_id">Turno Original a Sustituir <span class="text-danger">*</span></label>
+                        <select class="form-control" id="turno_original_id" name="turno_original_id" required>
+                            <option value="">Cargando turnos...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="empleado_sustituto_id">Empleado Sustituto <span class="text-danger">*</span></label>
+                        <select class="form-control" id="empleado_sustituto_id" name="empleado_sustituto_id" required>
+                            <option value="">Cargando empleados...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="motivo">Motivo <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="motivo" name="motivo" rows="3" required minlength="5"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="observaciones">Observaciones</label>
+                        <textarea class="form-control" id="observaciones" name="observaciones" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#sustitucionesTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json"
+        },
+        "pageLength": 10,
+        "responsive": true,
+        "order": [[2, "desc"]]
+    });
+
+    cargarSelects();
+
+    $("#formSust").validate({
+        rules: {
+            turno_original_id: { required: true },
+            empleado_sustituto_id: { required: true },
+            motivo: { required: true, minlength: 5 }
+        },
+        messages: {
+            turno_original_id: "Seleccione un turno.",
+            empleado_sustituto_id: "Seleccione el sustituto.",
+            motivo: {
+                required: "Ingrese el motivo.",
+                minlength: "Debe tener al menos 5 caracteres."
+            }
+        },
+        errorElement: 'span',
+        errorClass: 'text-danger small font-weight-bold',
+        submitHandler: function(form) {
+            guardarSustitucion();
+        }
+    });
+});
+
+function cargarSelects() {
+    $.get("{% url 'Vacaciones:api_empleados' %}", function(data) {
+        let options = '<option value="">Seleccione un empleado</option>';
+        let list = data.empleados || data;
+        if (Array.isArray(list)) {
+            list.forEach(function(emp) {
+                options += `<option value="${emp.id}">${emp.nombres} ${emp.apellidos}</option>`;
+            });
+        }
+        $('#empleado_sustituto_id').html(options);
+    }).fail(function() {
+        $('#empleado_sustituto_id').html('<option value="">Error al cargar empleados</option>');
+    });
+
+    $.get("{% url 'Vacaciones:api_calendar_events' %}", function(data) {
+        let options = '<option value="">Seleccione un turno</option>';
+        let events = data.events || data;
+        events.forEach(function(ev) {
+            if (ev.type === 'turno') {
+                options += `<option value="${ev.id.replace('turno-', '')}">${ev.title} - ${ev.start}</option>`;
+            }
+        });
+        $('#turno_original_id').html(options);
+    }).fail(function() {
+        $('#turno_original_id').html('<option value="">Error al cargar turnos</option>');
+    });
+}
+
+function abrirModalSustitucion() {
+    $('#formSust')[0].reset();
+    $('#formSust').validate().resetForm();
+    $('#sustId').val('');
+    $('#modalSustitucionTitle').text('Nueva Sustitución');
+    $('#modalSustitucion').modal('show');
+}
+
+function editarSustitucion(id, turnoId, empleadoId, motivo, obs) {
+    $('#formSust')[0].reset();
+    $('#formSust').validate().resetForm();
+    $('#sustId').val(id);
+    $('#turno_original_id').val(turnoId);
+    $('#empleado_sustituto_id').val(empleadoId);
+    $('#motivo').val(motivo);
+    $('#observaciones').val(obs);
+    $('#modalSustitucionTitle').text('Editar Sustitución');
+    $('#modalSustitucion').modal('show');
+}
+
+function guardarSustitucion() {
+    let id = $('#sustId').val();
+    let url = id ? "{% url 'Vacaciones:sustitucion_editar' pk=0 %}".replace('0', id) : "{% url 'Vacaciones:sustitucion_crear' %}";
+    let type = id ? 'PUT' : 'POST';
+    
+    let payload = {
+        'turno_original_id': $('#turno_original_id').val(),
+        'empleado_sustituto_id': $('#empleado_sustituto_id').val(),
+        'motivo': $('#motivo').val(),
+        'observaciones': $('#observaciones').val()
+    };
+
+    $.ajax({
+        url: url,
+        type: type,
+        data: JSON.stringify(payload),
+        contentType: 'application/json',
+        headers: {
+            'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+        },
+        success: function(response) {
+            $('#modalSustitucion').modal('hide');
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Sustitución guardada correctamente',
+            }).then(() => {
+                location.reload();
+            });
+        },
+        error: function(xhr) {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Ocurrió un error al guardar la sustitución'
+            });
+        }
+    });
+}
+
+function eliminarSustitucion(id) {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "¡No podrás revertir esto!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{% url 'Vacaciones:sustitucion_eliminar' pk=0 %}".replace('0', id),
+                type: 'DELETE',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Eliminado',
+                        text: 'Sustitución eliminada correctamente.'
+                    }).then(() => {
+                        location.reload();
+                    });
+                }
+            });
+        }
+    });
+}
+
+function aceptarSustitucion(id) {
+            Swal.fire({
+                title: '¿Aceptar Sustitución?',
+                text: "¿Estás seguro de que deseas aceptar esta sustitución?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, aceptar',
+                cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{% url 'Vacaciones:sustitucion_aceptar' pk=0 %}".replace('0', id),
+                type: 'POST',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function() {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Éxito!',
+                text: 'Sustitución guardada correctamente'
+            }).then(() => {
+                        location.reload();
+                    });
+                }
+            });
+        }
+    });
+}
+
+function rechazarSustitucion(id) {
+            Swal.fire({
+                title: 'Rechazar Sustitución',
+                input: 'textarea',
+                inputLabel: 'Motivo de rechazo (Observaciones)',
+                inputPlaceholder: 'Escriba las observaciones del rechazo...',
+                inputAttributes: {
+                    'aria-label': 'Motivo de rechazo'
+                },
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Rechazar',
+                cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) {
+                return '¡Debes ingresar un motivo de rechazo!'
+            }
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: "{% url 'Vacaciones:sustitucion_rechazar' pk=0 %}".replace('0', id),
+                type: 'POST',
+                data: JSON.stringify({ observaciones: result.value }),
+                contentType: 'application/json',
+                headers: {
+                    'X-CSRFToken': $('[name=csrfmiddlewaretoken]').val()
+                },
+                success: function() {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Aceptada',
+                        text: 'Sustitución aceptada correctamente.'
+                    }).then(() => {
+                        location.reload();
+                    });
+                }
+            });
+        }
+    });
+}
+</script>
+{% endblock %}

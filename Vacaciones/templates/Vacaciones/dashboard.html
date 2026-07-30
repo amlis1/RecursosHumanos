@@ -1,0 +1,357 @@
+{% extends 'PlantillaGeneral.html' %}
+{% load static %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="font-weight-bold">Dashboard</h2>
+    </div>
+</div>
+
+<!-- TOP SECTION: 4 Stat Cards -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Empleados</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800 counter" data-target="{{ total_empleados|default:0 }}">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Departamentos</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800 counter" data-target="{{ total_departamentos|default:0 }}">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-building fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Permisos Pendientes</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800 counter" data-target="{{ permisos_pendientes|default:0 }}">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-file-alt fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Ausencias Activas</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800 counter" data-target="{{ total_ausencias|default:0 }}">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-slash fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MIDDLE SECTION: Charts -->
+<div class="row mb-4">
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-chart-bar mr-2"></i>Ausentismo por Departamento</h6>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height:300px;">
+                    <canvas id="ausentismoChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-chart-pie mr-2"></i>Empleados por Depto</h6>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height:300px;">
+                    <canvas id="deptChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- BOTTOM SECTION: Vacaciones -->
+<div class="row">
+    <div class="col-lg-12 mb-4">
+        <div class="card shadow h-100">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-umbrella-beach mr-2"></i>Vacaciones (Pendientes vs Tomados)</h6>
+            </div>
+            <div class="card-body">
+                <div style="position: relative; height:350px;">
+                    <canvas id="vacacionesChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DATA SCRIPT TAGS -->
+<script id="ausentismoData" type="application/json">
+    {{ ausentismo_data|safe|default:"[]" }}
+</script>
+<script id="vacacionesData" type="application/json">
+    {{ vacaciones_data|safe|default:"[]" }}
+</script>
+<script id="empleadosDeptData" type="application/json">
+    {{ empleados_por_departamento|default:"[]"|safe }}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('tutorial') === '1') {
+            if (window.history.replaceState) {
+                const cleanUrl = window.location.protocol + '//' + window.location.host + window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+            }
+            Swal.fire({
+                title: '¿Deseas iniciar un tutorial de la página?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, quiero',
+                cancelButtonText: 'No, gracias',
+                confirmButtonColor: '#1a73e8',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    setTimeout(iniciarTutorial, 300);
+                }
+            });
+        }
+    });
+
+    function iniciarTutorial() {
+        const driver = window.driver?.js?.driver;
+        if (!driver) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cargar el tutorial.' });
+            return;
+        }
+
+        const driverObj = driver({
+            showProgress: true,
+            animate: true,
+            steps: [
+                {
+                    element: '#nav-dashboard',
+                    popover: {
+                        title: '📊 Dashboard',
+                        description: 'Panel principal con resumen general: total de empleados, departamentos, permisos pendientes y ausencias activas. También incluye gráficos de ausentismo por departamento, distribución de empleados y estado de vacaciones.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                },
+                {
+                    element: '#nav-empleados',
+                    popover: {
+                        title: '👥 Empleados',
+                        description: 'Lista completa de todos los empleados registrados. Puedes ver su perfil con QR, editar sus datos, o eliminarlos. Desde aquí también puedes crear nuevos empleados con toda su información personal y laboral.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                },
+                {
+                    element: '#nav-departamentos',
+                    popover: {
+                        title: '🏢 Departamentos',
+                        description: 'Gestiona los departamentos de la empresa. Crea, edita o elimina departamentos. Cada empleado pertenece a un departamento, lo que permite organizar la estructura organizativa.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                },
+                {
+                    element: '#nav-permisos',
+                    popover: {
+                        title: '📋 Permisos / Vacaciones',
+                        description: 'Administra las solicitudes de permisos y vacaciones de los empleados. Puedes crear nuevas solicitudes, aprobar o rechazar permisos pendientes, y hacer seguimiento del estado de cada uno. Incluye aprobación masiva.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                },
+                {
+                    element: '#nav-turnos',
+                    popover: {
+                        title: '🕐 Turnos de Guardia',
+                        description: 'Asigna y gestiona los turnos de guardia (mañana, tarde, noche) para cada empleado. Puedes intercambiar turnos entre empleados arrastrando y soltando las filas en la tabla.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                },
+                {
+                    element: '#nav-sustituciones',
+                    popover: {
+                        title: '🔄 Sustituciones',
+                        description: 'Gestiona sustituciones de turnos entre empleados. Cuando un empleado no puede cubrir su turno, se registra una sustitución con otro empleado que lo reemplace.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                },
+                {
+                    element: '#nav-calendario',
+                    popover: {
+                        title: '📅 Calendario',
+                        description: 'Vista de calendario interactiva que muestra todos los turnos y permisos registrados. Permite visualizar de forma gráfica la ocupación de cada día.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                },
+                {
+                    element: '#nav-reportes',
+                    popover: {
+                        title: '📄 Reportes',
+                        description: 'Genera y exporta reportes en PDF con datos de ausentismo por departamento y estado de vacaciones de los empleados. También puedes enviar el reporte por correo electrónico.',
+                        side: 'bottom',
+                        align: 'start'
+                    }
+                }
+            ]
+        });
+
+        driverObj.drive();
+    }
+
+    // Counter Animation
+    const counters = document.querySelectorAll('.counter');
+    const speed = 200;
+
+    counters.forEach(counter => {
+        const updateCount = () => {
+            const target = +counter.getAttribute('data-target');
+            const count = +counter.innerText;
+            const inc = target / speed;
+
+            if (count < target) {
+                counter.innerText = Math.ceil(count + inc);
+                setTimeout(updateCount, 15);
+            } else {
+                counter.innerText = target;
+            }
+        };
+        updateCount();
+    });
+
+    document.addEventListener("DOMContentLoaded", function() {
+        let ausData = [];
+        let vacData = [];
+        let deptData = [];
+        
+        try {
+            ausData = JSON.parse(document.getElementById('ausentismoData').textContent);
+        } catch(e) { console.error("Error parsing ausentismo data", e); }
+        
+        try {
+            vacData = JSON.parse(document.getElementById('vacacionesData').textContent);
+        } catch(e) { console.error("Error parsing vacaciones data", e); }
+        
+        try {
+            let rawDept = document.getElementById('empleadosDeptData').textContent.trim();
+            if(rawDept) {
+                rawDept = rawDept.replace(/'/g, '"'); 
+                deptData = JSON.parse(rawDept);
+            }
+        } catch(e) { console.error("Error parsing empleados_por_departamento data", e); }
+
+        // 1. Ausentismo Bar Chart
+        const ctxAus = document.getElementById('ausentismoChart').getContext('2d');
+        new Chart(ctxAus, {
+            type: 'bar',
+            data: {
+                labels: ausData.map(d => d.nombre),
+                datasets: [{
+                    label: 'Porcentaje de Ausentismo (%)',
+                    data: ausData.map(d => d.porcentaje),
+                    backgroundColor: 'rgba(26, 115, 232, 0.7)',
+                    borderColor: 'rgba(26, 115, 232, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, max: 100 } }
+            }
+        });
+
+        // 2. Empleados por Depto Doughnut Chart
+        const ctxDept = document.getElementById('deptChart').getContext('2d');
+        const colors = ['#1a73e8', '#9c27b0', '#ff9800', '#f44336', '#00bcd4', '#4caf50'];
+        
+        new Chart(ctxDept, {
+            type: 'doughnut',
+            data: {
+                labels: deptData.map(d => d.nombre),
+                datasets: [{
+                    data: deptData.map(d => d.cantidad),
+                    backgroundColor: colors.slice(0, deptData.length)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false
+            }
+        });
+
+        // 3. Vacaciones Pendientes Chart
+        const ctxVac = document.getElementById('vacacionesChart').getContext('2d');
+        const topVacData = vacData.slice(0, 10);
+
+        new Chart(ctxVac, {
+            type: 'bar',
+            data: {
+                labels: topVacData.map(d => d.nombres + ' ' + d.apellidos),
+                datasets: [
+                    {
+                        label: 'Días Pendientes',
+                        data: topVacData.map(d => d.dias_vacaciones_pendientes),
+                        backgroundColor: 'rgba(76, 175, 80, 0.7)'
+                    },
+                    {
+                        label: 'Días Tomados',
+                        data: topVacData.map(d => d.dias_vacaciones_tomados),
+                        backgroundColor: 'rgba(255, 152, 0, 0.7)'
+                    }
+                ]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { x: { stacked: true }, y: { stacked: true } }
+            }
+        });
+    });
+</script>
+{% endblock %}

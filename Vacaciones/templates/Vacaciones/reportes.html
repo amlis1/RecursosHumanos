@@ -1,0 +1,331 @@
+{% extends 'PlantillaGeneral.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print { display: none !important; }
+    }
+</style>
+<div class="container-fluid py-4" id="printableArea">
+    
+    <!-- Section 1: Ausentismo Laboral por Departamento -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 font-weight-bold text-primary"><i class="fas fa-chart-bar mr-2"></i> Ausentismo Laboral por Departamento</h5>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </div>
+        <div class="card-body">
+            <div style="position: relative; height: 350px;" class="mb-4">
+                <canvas id="ausentismoChart"></canvas>
+            </div>
+            
+            <div class="table-responsive">
+                <table id="tablaAusentismo" class="table table-hover w-100">
+                    <thead>
+                        <tr>
+                            <th>Departamento</th>
+                            <th>Total Empleados</th>
+                            <th>Ausentes</th>
+                            <th>Porcentaje (%)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 2: Saldo de Vacaciones Pendientes por Año Fiscal -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 font-weight-bold text-primary"><i class="fas fa-calendar-alt mr-2"></i> Saldo de Vacaciones Pendientes</h5>
+            <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </div>
+        <div class="card-body">
+            <div style="position: relative; height: 350px;" class="mb-4">
+                <canvas id="vacacionesChart"></canvas>
+            </div>
+            
+            <div class="table-responsive">
+                <table id="tablaVacaciones" class="table table-hover w-100">
+                    <thead>
+                        <tr>
+                            <th>Empleado</th>
+                            <th>Días Pendientes</th>
+                            <th>Días Tomados</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section 3: Summary QR Code -->
+    <div class="card shadow text-center mb-4">
+        <div class="card-header py-3">
+            <h5 class="mb-0 font-weight-bold text-primary"><i class="fas fa-qrcode mr-2"></i> Código QR de Resumen</h5>
+        </div>
+        <div class="card-body">
+            <div id="qrCodeContainer" class="p-3 d-inline-block rounded">
+                <!-- QR code goes here -->
+            </div>
+            <p class="mt-3 text-muted small">Escanee para ver el resumen ejecutivo del reporte</p>
+        </div>
+    </div>
+
+    <!-- Section 4: Enviar reporte por correo -->
+    <div class="card shadow mb-5 no-print">
+        <div class="card-header py-3">
+            <h5 class="mb-0 font-weight-bold text-success"><i class="fas fa-envelope mr-2"></i> Enviar Reporte por Correo Electrónico</h5>
+        </div>
+        <div class="card-body">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 col-md-10">
+                    <div class="alert alert-info text-center mb-4">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Ingresa una dirección de correo electrónico para poder remitirte el reporte en formato PDF.
+                    </div>
+                    <div class="form-row align-items-end">
+                        <div class="col-md-8 mb-2 mb-md-0">
+                            <label for="emailReporte" class="sr-only">Correo electrónico</label>
+                            <input type="email" class="form-control form-control-lg" id="emailReporte" placeholder="ejemplo@correo.com">
+                        </div>
+                        <div class="col-md-4">
+                            <button type="button" class="btn btn-success btn-lg btn-block" id="btnEnviarReporte">
+                                <i class="fas fa-paper-plane mr-2"></i> Enviar
+                            </button>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+
+<script>
+    $(document).ready(function() {
+        const dtOptions = {
+            language: {
+                url: "//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json"
+            },
+            responsive: true,
+            pageLength: 5,
+            lengthMenu: [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]]
+        };
+
+        let totalDeps = 0;
+        let totalEmps = 0;
+        let totalAusentes = 0;
+        
+        $.ajax({
+            url: "{% url 'Vacaciones:api_ausentismo_departamento' %}",
+            method: 'GET',
+            success: function(response) {
+                const data = response.data;
+                const labels = [];
+                const ausentismoData = [];
+                
+                const tableBody = $('#tablaAusentismo tbody');
+                tableBody.empty();
+                
+                data.forEach(function(item) {
+                    labels.push(item.departamento);
+                    ausentismoData.push(item.porcentaje);
+                    
+                    totalDeps++;
+                    totalEmps += item.total_empleados;
+                    totalAusentes += item.ausentes;
+                    
+                    tableBody.append(`
+                        <tr>
+                            <td>${item.departamento}</td>
+                            <td>${item.total_empleados}</td>
+                            <td>${item.ausentes}</td>
+                            <td>${parseFloat(item.porcentaje).toFixed(2)}%</td>
+                        </tr>
+                    `);
+                });
+                
+                $('#tablaAusentismo').DataTable(dtOptions);
+                
+                const ctx1 = document.getElementById('ausentismoChart').getContext('2d');
+                new Chart(ctx1, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: '% Ausentismo',
+                            data: ausentismoData,
+                            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: true, max: 100 }
+                        }
+                    }
+                });
+                
+                generateSummaryQR();
+            },
+            error: function(err) {
+                console.error("Error fetching ausentismo data", err);
+            }
+        });
+
+        $.ajax({
+            url: "{% url 'Vacaciones:api_vacaciones_pendientes' %}",
+            method: 'GET',
+            success: function(response) {
+                const data = response.data;
+                const labels = [];
+                const pendientesData = [];
+                const tomadosData = [];
+                
+                const tableBody = $('#tablaVacaciones tbody');
+                tableBody.empty();
+                
+                data.forEach(function(item) {
+                    const fullName = item.nombres + ' ' + item.apellidos;
+                    labels.push(fullName);
+                    pendientesData.push(item.dias_vacaciones_pendientes);
+                    tomadosData.push(item.dias_vacaciones_tomados);
+                    
+                    tableBody.append(`
+                        <tr>
+                            <td>${fullName}</td>
+                            <td>${item.dias_vacaciones_pendientes}</td>
+                            <td>${item.dias_vacaciones_tomados}</td>
+                        </tr>
+                    `);
+                });
+                
+                $('#tablaVacaciones').DataTable(dtOptions);
+                
+                const ctx2 = document.getElementById('vacacionesChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Días Pendientes',
+                                data: pendientesData,
+                                backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                            },
+                            {
+                                label: 'Días Tomados',
+                                data: tomadosData,
+                                backgroundColor: 'rgba(255, 99, 132, 0.7)'
+                            }
+                        ]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { beginAtZero: true, stacked: true },
+                            y: { stacked: true }
+                        }
+                    }
+                });
+            },
+            error: function(err) {
+                console.error("Error fetching vacaciones pendientes data", err);
+            }
+        });
+        
+        $('#btnEnviarReporte').on('click', function() {
+            const email = $('#emailReporte').val().trim();
+            const btn = $(this);
+
+            if (!email) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Campo vacío',
+                    text: 'Por favor ingresa un correo electrónico.',
+                    confirmButtonColor: '#3085d6'
+                });
+                return;
+            }
+
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm mr-2"></span> Enviando...');
+
+            $.ajax({
+                url: "{% url 'Vacaciones:enviar_reporte' %}",
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ email: email }),
+                success: function(response) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'CORREO ENVIADO CORRECTAMENTE',
+                        text: 'El reporte ha sido enviado a ' + email,
+                        confirmButtonColor: '#28a745',
+                        confirmButtonText: 'Aceptar'
+                    });
+                    $('#emailReporte').val('');
+                },
+                error: function(xhr) {
+                    let msg = 'HUBO UN ERROR AL ENVIAR SU CORREO';
+                    let detail = 'Revisa la configuración de correo en settings.py.';
+                    try {
+                        const resp = JSON.parse(xhr.responseText);
+                        if (resp.error) detail = resp.error;
+                    } catch(e) {}
+                    Swal.fire({
+                        icon: 'error',
+                        title: msg,
+                        text: detail,
+                        confirmButtonColor: '#dc3545',
+                        confirmButtonText: 'Aceptar'
+                    });
+                },
+                complete: function() {
+                    btn.prop('disabled', false).html('<i class="fas fa-paper-plane mr-2"></i> Enviar');
+                }
+            });
+        });
+
+        function generateSummaryQR() {
+            let avgAusentismo = 0;
+            if (totalEmps > 0) {
+                avgAusentismo = ((totalAusentes / totalEmps) * 100).toFixed(2);
+            }
+            
+            const summaryText = `Resumen Ejecutivo:\n- Departamentos: ${totalDeps}\n- Empleados: ${totalEmps}\n- Promedio Ausentismo: ${avgAusentismo}%`;
+            
+            try {
+                var qr = qrcode(0, 'M');
+                qr.addData(summaryText);
+                qr.make();
+                var img = qr.createDataURL(6);
+                $('#qrCodeContainer').html('<img src="' + img + '" alt="QR Code Resumen" />');
+            } catch (e) {
+                console.error("Error generating QR", e);
+            }
+        }
+    });
+</script>
+{% endblock %}

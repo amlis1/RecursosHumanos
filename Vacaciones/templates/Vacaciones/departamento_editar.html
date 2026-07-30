@@ -1,0 +1,113 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block title %}Editar Departamento - Recursos Humanos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="font-weight-bold text-primary mb-0">
+                <i class="fas fa-building mr-2"></i>Actualizar Departamento: {{ departamento.nombre }}
+            </h2>
+            <a href="{% url 'Vacaciones:departamentos_lista' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left mr-1"></i>Volver a Departamentos
+            </a>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-lg">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="card-title mb-0 font-weight-bold">Información del Departamento</h5>
+            </div>
+            <div class="card-body p-4">
+                <form id="formEditarDepartamento">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="font-weight-bold">Nombre del Departamento *</label>
+                        <input type="text" class="form-control" name="nombre" id="nombre" value="{{ departamento.nombre }}" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Jefe de Departamento</label>
+                        <input type="text" class="form-control" name="jefe_departamento" id="jefe_departamento" value="{{ departamento.jefe_departamento }}">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Descripción</label>
+                        <textarea class="form-control" name="descripcion" id="descripcion" rows="4">{{ departamento.descripcion }}</textarea>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'Vacaciones:departamentos_lista' %}" class="btn btn-secondary mr-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save mr-1"></i>Actualizar Departamento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#formEditarDepartamento').validate({
+        rules: {
+            nombre: { required: true, minlength: 3 },
+            jefe_departamento: { required: true, minlength: 3 },
+            descripcion: { required: true, minlength: 5 }
+        },
+        messages: {
+            nombre: { required: "El nombre del departamento es obligatorio.", minlength: "Mínimo 3 caracteres." },
+            jefe_departamento: { required: "El jefe de departamento es obligatorio.", minlength: "Mínimo 3 caracteres." },
+            descripcion: { required: "La descripción es obligatoria.", minlength: "Mínimo 5 caracteres." }
+        },
+        errorElement: 'span',
+        errorClass: 'error invalid-feedback',
+        highlight: function(element) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function(element) {
+            $(element).removeClass('is-invalid');
+        },
+        submitHandler: function(form) {
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => { data[key] = value; });
+
+            $.ajax({
+                url: "{% url 'Vacaciones:departamento_editar' pk=departamento.id %}",
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                success: function(resp) {
+                    if (resp.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Actualizado!',
+                            text: resp.message || 'Departamento actualizado correctamente',
+                            confirmButtonText: 'Aceptar'
+                        }).then(() => {
+                            window.location.href = "{% url 'Vacaciones:departamentos_lista' %}";
+                        });
+                    } else {
+                        Swal.fire('Error', resp.error || 'No se pudo actualizar el departamento', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    let msg = 'Error en el servidor';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        msg = xhr.responseJSON.error;
+                    }
+                    Swal.fire('Error', msg, 'error');
+                }
+            });
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

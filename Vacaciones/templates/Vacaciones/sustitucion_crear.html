@@ -1,0 +1,130 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block title %}Nueva Sustitución - Recursos Humanos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="font-weight-bold text-primary mb-0">
+                <i class="fas fa-exchange-alt mr-2"></i>Registrar Nueva Sustitución
+            </h2>
+            <a href="{% url 'Vacaciones:sustituciones_lista' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left mr-1"></i>Volver a Sustituciones
+            </a>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-lg">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="card-title mb-0 font-weight-bold">Detalles de la Sustitución</h5>
+            </div>
+            <div class="card-body p-4">
+                <form id="formCrearSustitucion">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="font-weight-bold">Turno a Sustituir *</label>
+                        <select class="form-control select2" name="turno_original_id" id="turno_original_id" required>
+                            <option value="">Seleccione Turno...</option>
+                            {% for t in turnos %}
+                                <option value="{{ t.id }}">{{ t.empleado.apellidos }} {{ t.empleado.nombres }} - {{ t.fecha }} ({{ t.get_turno_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Empleado Sustituto *</label>
+                        <select class="form-control select2" name="empleado_sustituto_id" id="empleado_sustituto_id" required>
+                            <option value="">Seleccione Empleado Sustituto...</option>
+                            {% for emp in empleados %}
+                                <option value="{{ emp.id }}">{{ emp.apellidos }} {{ emp.nombres }} ({{ emp.departamento.nombre }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Motivo de Sustitución *</label>
+                        <input type="text" class="form-control" name="motivo" id="motivo" placeholder="Ej: Enfermedad, Calamidad doméstica" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Observaciones</label>
+                        <textarea class="form-control" name="observaciones" id="observaciones" rows="3" placeholder="Observaciones adicionales"></textarea>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'Vacaciones:sustituciones_lista' %}" class="btn btn-secondary mr-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save mr-1"></i>Guardar Sustitución
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    $('#formCrearSustitucion').validate({
+        rules: {
+            turno_original_id: { required: true },
+            empleado_sustituto_id: { required: true },
+            motivo: { required: true, minlength: 3 },
+            observaciones: { required: true, minlength: 3 }
+        },
+        messages: {
+            turno_original_id: { required: "Seleccione el turno original a sustituir." },
+            empleado_sustituto_id: { required: "Seleccione el empleado sustituto." },
+            motivo: { required: "Ingrese el motivo de la sustitución.", minlength: "Mínimo 3 caracteres." },
+            observaciones: { required: "Ingrese las observaciones de la sustitución.", minlength: "Mínimo 3 caracteres." }
+        },
+        errorElement: 'span',
+        errorClass: 'error invalid-feedback',
+        highlight: function(element) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function(element) {
+            $(element).removeClass('is-invalid');
+        },
+        submitHandler: function(form) {
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => { data[key] = value; });
+
+            $.ajax({
+                url: "{% url 'Vacaciones:sustitucion_crear' %}",
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                success: function(resp) {
+                    if (resp.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: resp.message || 'Sustitución creada exitosamente',
+                            confirmButtonText: 'Aceptar'
+                        }).then(() => {
+                            window.location.href = "{% url 'Vacaciones:sustituciones_lista' %}";
+                        });
+                    } else {
+                        Swal.fire('Error', resp.error || 'No se pudo crear la sustitución', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    let msg = 'Error en el servidor';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        msg = xhr.responseJSON.error;
+                    }
+                    Swal.fire('Error', msg, 'error');
+                }
+            });
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col-md-6">
+        <h2><i class="fas fa-calendar-alt text-primary mr-2"></i> Calendario General</h2>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center justify-content-between" id="calendar-legend">
+            <div><span class="badge badge-success p-2">■</span> Mañana / Permiso Aprobado</div>
+            <div><span class="badge badge-warning p-2">■</span> Tarde / Permiso Pendiente</div>
+            <div><span class="badge badge-primary p-2">■</span> Noche</div>
+            <div><span class="badge badge-danger p-2">■</span> Permiso Rechazado</div>
+            <div><span class="badge badge-secondary p-2">■</span> Cancelado</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-3">
+        <div id="calendar"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'es',
+        initialView: 'dayGridMonth',
+        headerToolbar: {
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+        },
+        events: function(fetchInfo, successCallback, failureCallback) {
+            $.get('{% url "Vacaciones:api_calendar_events" %}', function(res) {
+                if (res && res.events) {
+                    successCallback(res.events);
+                } else {
+                    successCallback([]);
+                }
+            }).fail(function() {
+                failureCallback();
+            });
+        },
+        eventClick: function(info) {
+            info.jsEvent.preventDefault();
+            const title = info.event.title;
+            const type = info.event.extendedProps.type || 'Evento';
+            
+            let start = info.event.start ? info.event.start.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+            let end = info.event.end ? info.event.end.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }) : 'N/A';
+            
+            Swal.fire({
+                title: title,
+                html: `
+                    <div class="text-left mt-3">
+                        <p><strong>Tipo:</strong> ${type}</p>
+                        <p><strong>Inicio:</strong> ${start}</p>
+                        <p><strong>Fin:</strong> ${end}</p>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Cerrar'
+            });
+        },
+        height: 'auto'
+    });
+
+    calendar.render();
+
+    document.getElementById('start-tour').addEventListener('click', function() {
+        const driverObj = window.driver.js ? window.driver.js.driver : window.driver;
+        if (typeof driverObj === 'function') {
+            const tour = driverObj({
+                showProgress: true,
+                progressText: 'Paso {{current}} de {{total}}',
+                nextBtnText: 'Siguiente',
+                prevBtnText: 'Anterior',
+                doneBtnText: 'Finalizar',
+                steps: [
+                    {
+                        element: '#calendar',
+                        popover: {
+                            title: 'Calendario',
+                            description: 'Aquí puedes ver todos los turnos y permisos asignados a los empleados. Haz clic en un evento para ver sus detalles.',
+                            side: "top", align: 'start'
+                        }
+                    },
+                    {
+                        element: '#calendar-legend',
+                        popover: {
+                            title: 'Leyenda',
+                            description: 'Los colores te ayudan a identificar rápidamente el tipo de evento y su estado.',
+                            side: "bottom", align: 'start'
+                        }
+                    }
+                ]
+            });
+            tour.drive();
+        }
+    });
+});
+</script>
+{% endblock %}

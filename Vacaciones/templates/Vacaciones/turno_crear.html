@@ -1,0 +1,157 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block title %}Nuevo Turno - Recursos Humanos{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="font-weight-bold text-primary mb-0">
+                <i class="fas fa-calendar-plus mr-2"></i>Asignar Nuevo Turno
+            </h2>
+            <a href="{% url 'Vacaciones:turnos_lista' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left mr-1"></i>Volver a Turnos
+            </a>
+        </div>
+
+        <div class="card shadow-lg border-0 rounded-lg">
+            <div class="card-header bg-primary text-white py-3">
+                <h5 class="card-title mb-0 font-weight-bold">Detalles del Turno</h5>
+            </div>
+            <div class="card-body p-4">
+                <form id="formCrearTurno">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label class="font-weight-bold">Empleado *</label>
+                        <select class="form-control select2" name="empleado_id" id="empleado_id" required>
+                            <option value="">Seleccione Empleado...</option>
+                            {% for emp in empleados %}
+                                <option value="{{ emp.id }}">{{ emp.apellidos }} {{ emp.nombres }} ({{ emp.departamento.nombre }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Fecha *</label>
+                            <input type="date" class="form-control" name="fecha" id="fecha" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Turno *</label>
+                            <select class="form-control select2" name="turno" id="turno" required>
+                                <option value="">Seleccione Turno...</option>
+                                {% for key, val in turno_choices %}
+                                    <option value="{{ key }}">{{ val }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Horas de Guardia</label>
+                            <input type="number" step="0.5" class="form-control" name="horas" id="horas" value="8" min="1" max="24">
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label class="font-weight-bold">Asignado por</label>
+                            <input type="text" class="form-control" name="creado_por" id="creado_por" placeholder="Nombre de quien asigna">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="font-weight-bold">Observaciones</label>
+                        <textarea class="form-control" name="observaciones" id="observaciones" rows="3" placeholder="Observaciones adicionales sobre el turno"></textarea>
+                    </div>
+
+                    <hr class="my-4">
+
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'Vacaciones:turnos_lista' %}" class="btn btn-secondary mr-2">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="fas fa-save mr-1"></i>Guardar Turno
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function getToday() {
+    return new Date().toISOString().split('T')[0];
+}
+
+$(document).ready(function() {
+    $('#fecha').attr('min', getToday());
+
+    $.validator.addMethod("fechaFutura", function(value, element) {
+        if (this.optional(element)) return true;
+        return value >= getToday();
+    }, "La fecha debe ser a partir de hoy.");
+
+    $('#formCrearTurno').validate({
+        rules: {
+            empleado_id: { required: true },
+            fecha: { required: true, fechaFutura: true },
+            turno: { required: true },
+            horas: { required: true, min: 1, max: 24 },
+            creado_por: { required: true, minlength: 2 },
+            observaciones: { required: true, minlength: 3 }
+        },
+        messages: {
+            empleado_id: { required: "Seleccione un empleado." },
+            fecha: { required: "Seleccione la fecha del turno.", fechaFutura: "La fecha debe ser a partir de hoy." },
+            turno: { required: "Seleccione el tipo de turno." },
+            horas: { required: "Ingrese las horas.", min: "Mínimo 1 hora.", max: "Máximo 24 horas." },
+            creado_por: { required: "Ingrese la persona que asigna el turno.", minlength: "Mínimo 2 caracteres." },
+            observaciones: { required: "Ingrese las observaciones del turno.", minlength: "Mínimo 3 caracteres." }
+        },
+        errorElement: 'span',
+        errorClass: 'error invalid-feedback',
+        highlight: function(element) {
+            $(element).addClass('is-invalid');
+        },
+        unhighlight: function(element) {
+            $(element).removeClass('is-invalid');
+        },
+        submitHandler: function(form) {
+            const formData = new FormData(form);
+            const data = {};
+            formData.forEach((value, key) => { data[key] = value; });
+
+            $.ajax({
+                url: "{% url 'Vacaciones:turno_crear' %}",
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                success: function(resp) {
+                    if (resp.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: '¡Éxito!',
+                            text: resp.message || 'Turno creado exitosamente',
+                            confirmButtonText: 'Aceptar'
+                        }).then(() => {
+                            window.location.href = "{% url 'Vacaciones:turnos_lista' %}";
+                        });
+                    } else {
+                        Swal.fire('Error', resp.error || 'No se pudo crear el turno', 'error');
+                    }
+                },
+                error: function(xhr) {
+                    let msg = 'Error en el servidor';
+                    if (xhr.responseJSON && xhr.responseJSON.error) {
+                        msg = xhr.responseJSON.error;
+                    }
+                    Swal.fire('Error', msg, 'error');
+                }
+            });
+            return false;
+        }
+    });
+});
+</script>
+{% endblock %}

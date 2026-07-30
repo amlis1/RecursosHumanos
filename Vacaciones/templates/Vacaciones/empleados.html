@@ -1,0 +1,589 @@
+{% extends 'PlantillaGeneral.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2 class="font-weight-bold mb-0"><i class="fas fa-users mr-2"></i>Gestión de Empleados</h2>
+        <a href="{% url 'Vacaciones:empleado_crear' %}" class="btn btn-primary shadow-sm">
+            <i class="fas fa-plus mr-1"></i>Nuevo Empleado
+        </a>
+    </div>
+</div>
+
+<!-- DataTables Card -->
+<div class="card shadow">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="empleadosTable" class="table table-striped table-hover table-bordered align-middle w-100 mb-0">
+                <thead class="thead-light">
+                    <tr>
+                        <th>Cédula</th>
+                        <th>Nombre</th>
+                        <th>Departamento</th>
+                        <th>Cargo</th>
+                        <th>Email</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empleado in empleados_list %}
+                    <tr>
+                        <td class="align-middle">{{ empleado.cedula }}</td>
+                        <td class="align-middle font-weight-bold">{{ empleado.nombres }} {{ empleado.apellidos }}</td>
+                        <td class="align-middle">{{ empleado.departamento.nombre }}</td>
+                        <td class="align-middle">{{ empleado.cargo }}</td>
+                        <td class="align-middle">{{ empleado.email }}</td>
+                        <td class="align-middle">
+                            {% if empleado.estado == 'activo' %}
+                                <span class="badge badge-success px-2 py-1">Activo</span>
+                            {% elif empleado.estado == 'inactivo' %}
+                                <span class="badge badge-danger px-2 py-1">Inactivo</span>
+                            {% elif empleado.estado == 'vacaciones' %}
+                                <span class="badge badge-warning px-2 py-1">Vacaciones</span>
+                            {% elif empleado.estado == 'licencia' %}
+                                <span class="badge badge-info px-2 py-1">Licencia</span>
+                            {% else %}
+                                <span class="badge badge-secondary px-2 py-1">{{ empleado.estado|title }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center align-middle">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-info btn-sm" onclick="verEmpleado('{{ empleado.id }}', '{{ empleado.nombres|escapejs }} {{ empleado.apellidos|escapejs }}', '{{ empleado.cedula|escapejs }}', '{{ empleado.email|escapejs }}', '{{ empleado.departamento.nombre|escapejs }}')" title="Ver Perfil">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <a class="btn btn-warning btn-sm text-dark" href="{% url 'Vacaciones:empleado_editar' pk=empleado.id %}" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-secondary btn-sm" onclick="mostrarQR('{{ empleado.nombres|escapejs }} {{ empleado.apellidos|escapejs }}', '{{ empleado.cedula|escapejs }}', '{{ empleado.email|escapejs }}', '{{ empleado.departamento.nombre|escapejs }}')" title="Código QR">
+                                    <i class="fas fa-qrcode"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="eliminarEmpleado({{ empleado.id }})" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Crear Empleado -->
+<div class="modal fade" id="modalCrear" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold" id="modalCrearLabel"><i class="fas fa-user-plus mr-2 text-primary"></i>Nuevo Empleado</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formCrear">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Cédula *</label>
+                            <input type="text" class="form-control" name="cedula" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Departamento *</label>
+                            <select class="form-control select-departamento" name="departamento_id" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Nombres *</label>
+                            <input type="text" class="form-control" name="nombres" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Apellidos *</label>
+                            <input type="text" class="form-control" name="apellidos" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Email *</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Teléfono</label>
+                            <input type="text" class="form-control" name="telefono">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Fecha de Nacimiento</label>
+                            <input type="date" class="form-control" name="fecha_nacimiento">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Género</label>
+                            <select class="form-control" name="genero">
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Estado</label>
+                            <select class="form-control" name="estado">
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                                <option value="vacaciones">Vacaciones</option>
+                                <option value="licencia">Licencia</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Cargo</label>
+                            <input type="text" class="form-control" name="cargo">
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>Fecha Ingreso *</label>
+                            <input type="date" class="form-control" name="fecha_ingreso" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>Salario</label>
+                            <input type="number" step="0.01" class="form-control" name="salario">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección</label>
+                        <textarea class="form-control" name="direccion" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Editar Empleado -->
+<div class="modal fade" id="modalEditar" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title font-weight-bold" id="modalEditarLabel"><i class="fas fa-user-edit mr-2 text-warning"></i>Editar Empleado</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="formEditar">
+                {% csrf_token %}
+                <input type="hidden" name="id" id="edit_id">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Cédula *</label>
+                            <input type="text" class="form-control" name="cedula" id="edit_cedula" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Departamento *</label>
+                            <select class="form-control select-departamento" name="departamento_id" id="edit_departamento_id" required>
+                                <option value="">Seleccione...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Nombres *</label>
+                            <input type="text" class="form-control" name="nombres" id="edit_nombres" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Apellidos *</label>
+                            <input type="text" class="form-control" name="apellidos" id="edit_apellidos" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Email *</label>
+                            <input type="email" class="form-control" name="email" id="edit_email" required>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Teléfono</label>
+                            <input type="text" class="form-control" name="telefono" id="edit_telefono">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Fecha de Nacimiento</label>
+                            <input type="date" class="form-control" name="fecha_nacimiento" id="edit_fecha_nacimiento">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Género</label>
+                            <select class="form-control" name="genero" id="edit_genero">
+                                <option value="M">Masculino</option>
+                                <option value="F">Femenino</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Estado</label>
+                            <select class="form-control" name="estado" id="edit_estado">
+                                <option value="activo">Activo</option>
+                                <option value="inactivo">Inactivo</option>
+                                <option value="vacaciones">Vacaciones</option>
+                                <option value="licencia">Licencia</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Cargo</label>
+                            <input type="text" class="form-control" name="cargo" id="edit_cargo">
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>Fecha Ingreso *</label>
+                            <input type="date" class="form-control" name="fecha_ingreso" id="edit_fecha_ingreso" required>
+                        </div>
+                        <div class="form-group col-md-3">
+                            <label>Salario</label>
+                            <input type="number" step="0.01" class="form-control" name="salario" id="edit_salario">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Dirección</label>
+                        <textarea class="form-control" name="direccion" id="edit_direccion" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning text-dark">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Perfil (View) -->
+<div class="modal fade" id="modalPerfil" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title font-weight-bold" id="view_nombre_completo">Perfil de Empleado</h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div id="view_qr_code" class="d-inline-block p-2 rounded"></div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Cédula</small>
+                        <span class="font-weight-bold" id="view_cedula">-</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Departamento</small>
+                        <span class="font-weight-bold" id="view_departamento">-</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Cargo</small>
+                        <span class="font-weight-bold" id="view_cargo">-</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Email</small>
+                        <span class="font-weight-bold" id="view_email">-</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Teléfono</small>
+                        <span class="font-weight-bold" id="view_telefono">-</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Fecha Ingreso</small>
+                        <span class="font-weight-bold" id="view_ingreso">-</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Estado</small>
+                        <span class="font-weight-bold" id="view_estado">-</span>
+                    </div>
+                    <div class="col-sm-6 mb-2">
+                        <small class="text-muted d-block text-uppercase">Días Vacaciones</small>
+                        <span class="font-weight-bold"><span id="view_vacaciones_pendientes" class="text-success">0</span> p. / <span id="view_vacaciones_tomados" class="text-warning">0</span> t.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<script>
+    const URL_CREAR = "{% url 'Vacaciones:empleado_crear' %}";
+    const URL_EDITAR_BASE = "{% url 'Vacaciones:empleado_editar' pk=0 %}";
+    const URL_ELIMINAR_BASE = "{% url 'Vacaciones:empleado_eliminar' pk=0 %}";
+    const URL_DEPARTAMENTOS = "{% url 'Vacaciones:api_departamentos' %}";
+    const URL_EMPLEADO_DETAIL_BASE = "{% url 'Vacaciones:api_empleado_detail' pk=0 %}";
+
+    let dataTableInst;
+
+    $(document).ready(function() {
+        dataTableInst = $('#empleadosTable').DataTable({
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json'
+            },
+            pageLength: 10,
+            responsive: true,
+            order: [[1, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: 6 }
+            ]
+        });
+
+        cargarDepartamentos();
+        initValidations();
+    });
+
+    function cargarDepartamentos() {
+        $.ajax({
+            url: URL_DEPARTAMENTOS,
+            type: 'GET',
+            success: function(res) {
+                let options = '<option value="">Seleccione...</option>';
+                let list = res.departamentos || res;
+                if (Array.isArray(list)) {
+                    list.forEach(d => {
+                        options += `<option value="${d.id}">${d.nombre}</option>`;
+                    });
+                }
+                $('.select-departamento').html(options);
+            }
+        });
+    }
+
+    function abrirModalCrear() {
+        $('#formCrear')[0].reset();
+        $('#formCrear').validate().resetForm();
+        $('.is-invalid').removeClass('is-invalid');
+        $('#modalCrear').modal('show');
+    }
+
+    function abrirModalEditar(id) {
+        let url = URL_EMPLEADO_DETAIL_BASE.replace('0', id);
+        $.ajax({
+            url: url,
+            type: 'GET',
+            success: function(res) {
+                let emp = res.empleado;
+                $('#edit_id').val(emp.id);
+                $('#edit_cedula').val(emp.cedula);
+                $('#edit_nombres').val(emp.nombres);
+                $('#edit_apellidos').val(emp.apellidos);
+                $('#edit_email').val(emp.email);
+                $('#edit_telefono').val(emp.telefono);
+                $('#edit_fecha_nacimiento').val(emp.fecha_nacimiento);
+                $('#edit_genero').val(emp.genero);
+                $('#edit_estado').val(emp.estado);
+                $('#edit_departamento_id').val(emp.departamento_id);
+                $('#edit_cargo').val(emp.cargo);
+                $('#edit_fecha_ingreso').val(emp.fecha_ingreso);
+                $('#edit_salario').val(emp.salario);
+                $('#edit_direccion').val(emp.direccion);
+
+                $('#formEditar').validate().resetForm();
+                $('.is-invalid').removeClass('is-invalid');
+                $('#modalEditar').modal('show');
+            }
+        });
+    }
+
+    function verEmpleado(id, nombre, cedula, email, depto) {
+        let url = URL_EMPLEADO_DETAIL_BASE.replace('0', id);
+        $.ajax({
+            url: url,
+            type: 'GET',
+            success: function(res) {
+                let emp = res.empleado;
+                $('#view_nombre_completo').text(emp.nombre_completo || nombre);
+                $('#view_cargo').text(emp.cargo || '-');
+                $('#view_cedula').text(emp.cedula || cedula);
+                $('#view_departamento').text(emp.departamento || depto);
+                $('#view_email').text(emp.email || email);
+                $('#view_telefono').text(emp.telefono || '-');
+                $('#view_ingreso').text(emp.fecha_ingreso || '-');
+                $('#view_estado').text(emp.estado ? emp.estado.toUpperCase() : '-');
+                $('#view_vacaciones_pendientes').text(emp.dias_vacaciones_pendientes || 0);
+                $('#view_vacaciones_tomados').text(emp.dias_vacaciones_tomados || 0);
+
+                let qrData = `Empleado: ${emp.nombre_completo} | Cedula: ${emp.cedula} | Depto: ${emp.departamento}`;
+                var qr = qrcode(0, 'M');
+                qr.addData(qrData);
+                qr.make();
+                $('#view_qr_code').html(qr.createImgTag(4));
+
+                $('#modalPerfil').modal('show');
+            }
+        });
+    }
+
+    function mostrarQR(nombre, cedula, email, depto) {
+        let qrData = `Empleado: ${nombre} | Cedula: ${cedula} | Depto: ${depto}`;
+        var qr = qrcode(0, 'M');
+        qr.addData(qrData);
+        qr.make();
+
+        Swal.fire({
+            title: 'Código QR de Empleado',
+            html: `<div class="p-3">${qr.createImgTag(5)}<br><small class="text-muted mt-2 d-block">${nombre} (${cedula})</small></div>`,
+            showConfirmButton: true,
+            confirmButtonText: 'Cerrar'
+        });
+    }
+
+    function eliminarEmpleado(id) {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "No podrás revertir esta acción",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                let url = URL_ELIMINAR_BASE.replace('0', id);
+                $.ajax({
+                    url: url,
+                    type: 'DELETE',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    success: function() {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Eliminado',
+                            text: 'El empleado ha sido eliminado',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => { location.reload(); });
+                    },
+                    error: function(err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: err.responseJSON?.error || 'Ocurrió un error al eliminar'
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    function initValidations() {
+        $('#formCrear').validate({
+            rules: {
+                cedula: { required: true, minlength: 5 },
+                nombres: "required",
+                apellidos: "required",
+                email: { required: true, email: true },
+                departamento_id: "required",
+                fecha_ingreso: "required"
+            },
+            errorElement: 'span',
+            errorPlacement: function (error, element) {
+                error.addClass('invalid-feedback');
+                element.closest('.form-group, .col-md-6, .col-md-4, .col-md-3').append(error);
+            },
+            highlight: function (element) {
+                $(element).addClass('is-invalid');
+            },
+            unhighlight: function (element) {
+                $(element).removeClass('is-invalid');
+            },
+            submitHandler: function(form) {
+                let data = {};
+                $(form).serializeArray().forEach(item => { data[item.name] = item.value; });
+
+                $.ajax({
+                    url: URL_CREAR,
+                    type: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    success: function(res) {
+                        $('#modalCrear').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: 'Empleado creado correctamente',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => { location.reload(); });
+                    },
+                    error: function(err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: err.responseJSON?.error || 'Ocurrió un error al guardar'
+                        });
+                    }
+                });
+                return false;
+            }
+        });
+
+        $('#formEditar').validate({
+            rules: {
+                cedula: { required: true, minlength: 5 },
+                nombres: "required",
+                apellidos: "required",
+                email: { required: true, email: true },
+                departamento_id: "required",
+                fecha_ingreso: "required"
+            },
+            errorElement: 'span',
+            errorPlacement: function (error, element) {
+                error.addClass('invalid-feedback');
+                element.closest('.form-group, .col-md-6, .col-md-4, .col-md-3').append(error);
+            },
+            highlight: function (element) {
+                $(element).addClass('is-invalid');
+            },
+            unhighlight: function (element) {
+                $(element).removeClass('is-invalid');
+            },
+            submitHandler: function(form) {
+                let data = {};
+                $(form).serializeArray().forEach(item => { data[item.name] = item.value; });
+                let id = $('#edit_id').val();
+                let url = URL_EDITAR_BASE.replace('0', id);
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: JSON.stringify(data),
+                    contentType: 'application/json',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    success: function(res) {
+                        $('#modalEditar').modal('hide');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Éxito',
+                            text: 'Empleado actualizado correctamente',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(() => { location.reload(); });
+                    },
+                    error: function(err) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: err.responseJSON?.error || 'Ocurrió un error al actualizar'
+                        });
+                    }
+                });
+                return false;
+            }
+        });
+    }
+</script>
+{% endblock %}

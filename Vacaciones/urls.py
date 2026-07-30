@@ -1,0 +1,46 @@
+from django.urls import path
+from . import views
+
+app_name = 'Vacaciones'
+
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('dashboard/', views.dashboard, name='dashboard'),
+    path('empleados/', views.empleados_lista, name='empleados_lista'),
+    path('empleados/crear/', views.empleado_crear, name='empleado_crear'),
+    path('empleados/editar/<int:pk>/', views.empleado_editar, name='empleado_editar'),
+    path('empleados/eliminar/<int:pk>/', views.empleado_eliminar, name='empleado_eliminar'),
+    path('departamentos/', views.departamentos_lista, name='departamentos_lista'),
+    path('departamentos/crear/', views.departamento_crear, name='departamento_crear'),
+    path('departamentos/editar/<int:pk>/', views.departamento_editar, name='departamento_editar'),
+    path('departamentos/eliminar/<int:pk>/', views.departamento_eliminar, name='departamento_eliminar'),
+    path('permisos/', views.permisos_lista, name='permisos_lista'),
+    path('permisos/crear/', views.permiso_crear, name='permiso_crear'),
+    path('permisos/editar/<int:pk>/', views.permiso_editar, name='permiso_editar'),
+    path('permisos/eliminar/<int:pk>/', views.permiso_eliminar, name='permiso_eliminar'),
+    path('permisos/aprobar/<int:pk>/', views.permiso_aprobar, name='permiso_aprobar'),
+    path('permisos/rechazar/<int:pk>/', views.permiso_rechazar, name='permiso_rechazar'),
+    path('permisos/aprobar-masivo/', views.permiso_aprobar_masivo, name='permiso_aprobar_masivo'),
+    path('turnos/', views.turnos_lista, name='turnos_lista'),
+    path('turnos/crear/', views.turno_crear, name='turno_crear'),
+    path('turnos/editar/<int:pk>/', views.turno_editar, name='turno_editar'),
+    path('turnos/eliminar/<int:pk>/', views.turno_eliminar, name='turno_eliminar'),
+    path('turnos/intercambiar/', views.turno_intercambiar, name='turno_intercambiar'),
+    path('sustituciones/', views.sustituciones_lista, name='sustituciones_lista'),
+    path('sustituciones/crear/', views.sustitucion_crear, name='sustitucion_crear'),
+    path('sustituciones/editar/<int:pk>/', views.sustitucion_editar, name='sustitucion_editar'),
+    path('sustituciones/eliminar/<int:pk>/', views.sustitucion_eliminar, name='sustitucion_eliminar'),
+    path('sustituciones/aceptar/<int:pk>/', views.sustitucion_aceptar, name='sustitucion_aceptar'),
+    path('sustituciones/rechazar/<int:pk>/', views.sustitucion_rechazar, name='sustitucion_rechazar'),
+    path('calendario/', views.calendario, name='calendario'),
+    path('reportes/', views.reportes, name='reportes'),
+    path('reportes/pdf/', views.reporte_pdf, name='reporte_pdf'),
+    path('reportes/enviar/', views.enviar_reporte, name='enviar_reporte'),
+    # API endpoints
+    path('api/calendar-events/', views.api_calendar_events, name='api_calendar_events'),
+    path('api/departamentos/', views.api_departamentos, name='api_departamentos'),
+    path('api/empleados/', views.api_empleados, name='api_empleados'),
+    path('api/ausentismo-departamento/', views.api_ausentismo_departamento, name='api_ausentismo_departamento'),
+    path('api/vacaciones-pendientes/', views.api_vacaciones_pendientes, name='api_vacaciones_pendientes'),
+    path('api/empleado-detail/<int:pk>/', views.api_empleado_detail, name='api_empleado_detail'),
+]

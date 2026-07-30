@@ -1,0 +1,367 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Iniciar Sesión - RRHH</title>
+    <link rel="stylesheet" href="{% static 'assets/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/fontawesome-all.min.css' %}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Barlow', sans-serif;
+        }
+        .login-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+            max-width: 420px;
+            width: 100%;
+        }
+        .login-header {
+            background: linear-gradient(135deg, #0d47a1, #1565c0);
+            padding: 35px 30px;
+            text-align: center;
+            color: white;
+        }
+        .login-header img {
+            max-height: 60px;
+            margin-bottom: 12px;
+        }
+        .login-header h3 {
+            margin: 0;
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+        .login-header p {
+            margin: 5px 0 0;
+            opacity: 0.85;
+            font-size: 0.9rem;
+        }
+        .login-body {
+            padding: 30px;
+        }
+        .login-body .form-group label {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.85rem;
+        }
+        .login-body .form-control {
+            border-radius: 8px;
+            padding: 10px 14px;
+            border: 1px solid #ddd;
+            transition: border-color 0.3s;
+        }
+        .login-body .form-control:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 3px rgba(26,115,232,0.15);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: white;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-login:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(26,115,232,0.4);
+            color: white;
+        }
+        .alert-error {
+            border-radius: 8px;
+            font-size: 0.85rem;
+        }
+        .login-footer {
+            text-align: center;
+            padding: 15px 30px 25px;
+            color: #888;
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <img src="{% static 'assets/img/logo/logo.png' %}" alt="Logo">
+            <h3>Sistema de Recursos Humanos</h3>
+            <p>Gestión de Turnos y Vacaciones</p>
+        </div>
+        <div class="login-body">
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-error" role="alert">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            {% if form.errors %}
+                <div class="alert alert-danger alert-error" role="alert">
+                    <i class="fas fa-exclamation-triangle mr-1"></i>
+                    Usuario o contraseña incorrectos. Intente de nuevo.
+                </div>
+            {% endif %}
+
+            <form method="post" novalidate>
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{% url 'Vacaciones:index' %}">
+                <div class="form-group">
+                    <label for="id_username">
+                        <i class="fas fa-user mr-1"></i> Usuario
+                    </label>
+                    <input type="text" name="username" id="id_username" class="form-control" 
+                           placeholder="Ingrese su usuario" required autofocus
+                           value="{{ form.username.value|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label for="id_password">
+                        <i class="fas fa-lock mr-1"></i> Contraseña
+                    </label>
+                    <input type="password" name="password" id="id_password" class="form-control" 
+                           placeholder="Ingrese su contraseña" required>
+                </div>
+                <div class="form-group mt-4 mb-0">
+                    <button type="submit" class="btn btn-login">
+                        <i class="fas fa-sign-in-alt mr-1"></i> Iniciar Sesión
+                    </button>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="#" id="btnRegistrarse" style="color: #1a73e8; font-size: 0.9rem;">
+                        <i class="fas fa-user-plus mr-1"></i> ¿No tienes cuenta? Regístrate
+                    </a>
+                </div>
+            </form>
+        </div>
+        <div class="login-footer">
+            <p class="mb-0">&copy; {{ year|default:"2026" }} Gestor de Turnos y Vacaciones RRHH</p>
+        </div>
+    </div>
+
+    <div style="max-width: 420px; width: 100%; margin-top: 20px;">
+        <div style="background: #fff; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.15); overflow: hidden;">
+            <div style="background: linear-gradient(135deg, #0d47a1, #1565c0); padding: 12px 20px; text-align: center; color: white;">
+                <h6 style="margin: 0; font-weight: 600; font-size: 0.85rem;">
+                    <i class="fas fa-info-circle mr-1"></i> Accesos de demostración
+                </h6>
+            </div>
+            <div style="padding: 15px 20px;">
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 140px; background: #f8f9fa; border-radius: 8px; padding: 12px; border-left: 3px solid #dc3545;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #dc3545; margin-bottom: 4px;">
+                            <i class="fas fa-crown mr-1"></i> Administrador
+                        </div>
+                        <div style="font-size: 0.8rem; color: #333;">
+                            <div><strong>Usuario:</strong> admin</div>
+                            <div><strong>Clave:</strong> admin123</div>
+                        </div>
+                    </div>
+                    <div style="flex: 1; min-width: 140px; background: #f8f9fa; border-radius: 8px; padding: 12px; border-left: 3px solid #28a745;">
+                        <div style="font-size: 0.7rem; text-transform: uppercase; font-weight: 700; color: #28a745; margin-bottom: 4px;">
+                            <i class="fas fa-user mr-1"></i> Empleado
+                        </div>
+                        <div style="font-size: 0.8rem; color: #333;">
+                            <div><strong>Usuario:</strong> tomy</div>
+                            <div><strong>Clave:</strong> empleado123</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Registro -->
+    <div class="modal fade" id="modalRegistro" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content shadow-lg" style="border-radius: 12px;">
+                <div class="modal-header" style="background: linear-gradient(135deg, #1a73e8, #0d47a1); color: white; border-radius: 12px 12px 0 0;">
+                    <h5 class="modal-title font-weight-bold"><i class="fas fa-user-plus mr-2"></i>Crear Cuenta</h5>
+                    <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="formRegistro">
+                    <div class="modal-body">
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold"><i class="fas fa-user mr-1"></i> Usuario *</label>
+                                <input type="text" class="form-control" name="username" id="reg_username" placeholder="Nombre de usuario" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold"><i class="fas fa-envelope mr-1"></i> Correo *</label>
+                                <input type="email" class="form-control" name="email" id="reg_email" placeholder="correo@ejemplo.com" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold"><i class="fas fa-lock mr-1"></i> Contraseña *</label>
+                                <input type="password" class="form-control" name="password" id="reg_password" placeholder="Mínimo 6 caracteres" required>
+                            </div>
+                            <div class="form-group col-md-6">
+                                <label class="font-weight-bold"><i class="fas fa-lock mr-1"></i> Confirmar *</label>
+                                <input type="password" class="form-control" name="password_confirm" id="reg_password_confirm" placeholder="Repite la contraseña" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="font-weight-bold"><i class="fas fa-user-tag mr-1"></i> Rol *</label>
+                            <select class="form-control" name="rol" id="reg_rol" required>
+                                <option value="empleado" selected>Empleado</option>
+                                <option value="admin">Administrador</option>
+                            </select>
+                        </div>
+                        <div class="datos-empleado">
+                            <hr>
+                            <h6 class="font-weight-bold text-primary"><i class="fas fa-id-card mr-1"></i> Datos del Empleado</h6>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold">Nombres *</label>
+                                    <input type="text" class="form-control" name="nombres" id="reg_nombres" placeholder="Nombres">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold">Apellidos *</label>
+                                    <input type="text" class="form-control" name="apellidos" id="reg_apellidos" placeholder="Apellidos">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold">Cédula *</label>
+                                    <input type="text" class="form-control" name="cedula" id="reg_cedula" placeholder="Número de cédula">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold">Departamento *</label>
+                                    <select class="form-control" name="departamento_id" id="reg_departamento_id">
+                                        <option value="">Cargando...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold">Teléfono</label>
+                                    <input type="text" class="form-control" name="telefono" id="reg_telefono" placeholder="Teléfono">
+                                </div>
+                                <div class="form-group col-md-6">
+                                    <label class="font-weight-bold">Fecha Nacimiento</label>
+                                    <input type="date" class="form-control" name="fecha_nacimiento" id="reg_fecha_nacimiento">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary" id="btnRegistrar">
+                            <i class="fas fa-user-plus mr-1"></i> Registrarse
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="{% static 'assets/js/bootstrap.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    $(document).ready(function() {
+        function cargarDepartamentos() {
+            $.getJSON('{% url "Vacaciones:api_departamentos" %}', function(resp) {
+                var sel = $('#reg_departamento_id');
+                sel.empty().append('<option value="">Seleccione Departamento...</option>');
+                if (resp.departamentos) {
+                    $.each(resp.departamentos, function(i, d) {
+                        sel.append('<option value="' + d.id + '">' + d.nombre + '</option>');
+                    });
+                }
+            });
+        }
+
+        function toggleCamposEmpleado() {
+            var esEmp = $('#reg_rol').val() === 'empleado';
+            $('#reg_nombres, #reg_apellidos, #reg_cedula, #reg_departamento_id').prop('required', esEmp);
+            $('.datos-empleado').toggle(esEmp);
+        }
+
+        $('#btnRegistrarse').on('click', function(e) {
+            e.preventDefault();
+            cargarDepartamentos();
+            toggleCamposEmpleado();
+            $('#modalRegistro').modal('show');
+        });
+
+        $('#reg_rol').on('change', toggleCamposEmpleado);
+        toggleCamposEmpleado();
+
+        $('#formRegistro').on('submit', function(e) {
+            e.preventDefault();
+            var data = {
+                username: $('#reg_username').val().trim(),
+                email: $('#reg_email').val().trim(),
+                password: $('#reg_password').val(),
+                password_confirm: $('#reg_password_confirm').val(),
+                rol: $('#reg_rol').val(),
+                nombres: $('#reg_nombres').val().trim(),
+                apellidos: $('#reg_apellidos').val().trim(),
+                cedula: $('#reg_cedula').val().trim(),
+                departamento_id: $('#reg_departamento_id').val(),
+                telefono: $('#reg_telefono').val().trim(),
+                fecha_nacimiento: $('#reg_fecha_nacimiento').val(),
+            };
+
+            if (!data.username || !data.email || !data.password || !data.password_confirm) {
+                Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Todos los campos son obligatorios.' });
+                return;
+            }
+            if (data.password !== data.password_confirm) {
+                Swal.fire({ icon: 'warning', title: 'Contraseñas no coinciden', text: 'Verifica las contraseñas.' });
+                return;
+            }
+            if (data.password.length < 6) {
+                Swal.fire({ icon: 'warning', title: 'Contraseña muy corta', text: 'Debe tener al menos 6 caracteres.' });
+                return;
+            }
+
+            if (data.rol === 'empleado') {
+                if (!data.nombres || !data.apellidos || !data.cedula || !data.departamento_id) {
+                    Swal.fire({ icon: 'warning', title: 'Campos incompletos', text: 'Complete nombres, apellidos, cédula y departamento.' });
+                    return;
+                }
+            }
+
+            $('#btnRegistrar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-1"></i> Registrando...');
+
+            $.ajax({
+                url: '{% url "register" %}',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                success: function(resp) {
+                    if (resp.success) {
+                        window.location.href = resp.redirect;
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Error', text: resp.error });
+                        $('#btnRegistrar').prop('disabled', false).html('<i class="fas fa-user-plus mr-1"></i> Registrarse');
+                    }
+                },
+                error: function(xhr) {
+                    var msg = 'Error en el servidor';
+                    if (xhr.responseJSON && xhr.responseJSON.error) msg = xhr.responseJSON.error;
+                    Swal.fire({ icon: 'error', title: 'Error', text: msg });
+                    $('#btnRegistrar').prop('disabled', false).html('<i class="fas fa-user-plus mr-1"></i> Registrarse');
+                }
+            });
+        });
+    });
+    </script>
+
+</body>
+</html>

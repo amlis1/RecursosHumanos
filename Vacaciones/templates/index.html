@@ -1,0 +1,394 @@
+{% load static %}
+<!doctype html>
+<html class="no-js" lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>Bienvenido - Sistema de Recursos Humanos</title>
+    <meta name="description" content="Sistema de Gesti&oacute;n de Recursos Humanos">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="shortcut icon" type="image/x-icon" href="{% static 'assets/img/favicon.ico' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/owl.carousel.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/flaticon.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/price_rangs.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/slicknav.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/animate.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/magnific-popup.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/fontawesome-all.min.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/themify-icons.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/slick.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/nice-select.css' %}">
+    <link rel="stylesheet" href="{% static 'assets/css/style.css' %}">
+</head>
+<body>
+    <!-- Preloader Start -->
+    <div id="preloader-active">
+        <div class="preloader d-flex align-items-center justify-content-center">
+            <div class="preloader-inner position-relative">
+                <div class="preloader-circle"></div>
+                <div class="preloader-img pere-text">
+                    <img src="{% static 'assets/img/logo/logo.png' %}" alt="Logo">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Preloader End -->
+
+    <header>
+        <div class="header-area header-transparrent">
+            <div class="headder-top header-sticky">
+                <div class="container">
+                    <div class="row align-items-center">
+                        <div class="col-lg-3 col-md-2">
+                            <div class="logo">
+                                <a href="{% url 'Vacaciones:index' %}"><img src="{% static 'assets/img/logo/logo.png' %}" alt="RRHH Logo" style="max-height: 45px;"></a>
+                            </div>
+                        </div>
+                        <div class="col-lg-9 col-md-9">
+                            <div class="menu-wrapper">
+                                <div class="main-menu">
+                                    <nav class="d-none d-lg-block">
+                                        <ul id="navigation">
+                                            <li><a href="{% url 'Vacaciones:index' %}">Inicio</a></li>
+                                            <li><a href="#entidades">Entidades</a></li>
+                                            <li><a href="#como-funciona">C&oacute;mo Funciona</a></li>
+                                            <li><a href="#nosotros">Nosotros</a></li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                                <div class="header-btn d-none f-right d-lg-block">
+                                    {% if user.is_authenticated %}
+                                        <a href="{% url 'Vacaciones:dashboard' %}" class="btn head-btn1">Dashboard</a>
+                                        <a href="{% url 'logout' %}" class="btn head-btn2">Salir</a>
+                                    {% else %}
+                                        <a href="{% url 'login' %}" class="btn head-btn1">Iniciar Sesi&oacute;n</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="mobile_menu d-block d-lg-none"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- slider Area Start -->
+        <div class="slider-area">
+            <div class="slider-active">
+                <div class="single-slider slider-height d-flex align-items-center" data-background="{% static 'assets/img/hero/h1_hero.jpg' %}">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-xl-8 col-lg-9 col-md-10">
+                                <div class="hero__caption">
+                                    <h1 data-animation="fadeInUp" data-delay="0.2s">Sistema de Gesti&oacute;n de Recursos Humanos</h1>
+                                    <p data-animation="fadeInUp" data-delay="0.4s" style="color: #fff; font-size: 1.1rem; opacity: 0.9;">Plataforma integral para la gesti&oacute;n de turnos, vacaciones, permisos y sustituciones de empleados.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-xl-6">
+                                <div class="hero__caption" data-animation="fadeInUp" data-delay="0.6s">
+                                    {% if user.is_authenticated %}
+                                        <a href="{% url 'Vacaciones:dashboard' %}" class="btn head-btn1">Ir al Dashboard</a>
+                                    {% else %}
+                                        <a href="{% url 'login' %}" class="btn head-btn1">Iniciar Sesi&oacute;n</a>
+                                        <a href="#entidades" class="btn head-btn2">Conocer M&aacute;s</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- slider Area End -->
+
+        <!-- Our Services Start -->
+        <div class="our-services section-pad-t30" id="entidades">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="section-tittle text-center">
+                            <span>Entidades del Sistema</span>
+                            <h2>Gesti&oacute;n Integral de RRHH</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="row d-flex justify-contnet-center">
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-user"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Empleados</h5>
+                                <span>Registro y control de personal con datos, cargo y vacaciones.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-real-estate"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Departamentos</h5>
+                                <span>Organizaci&oacute;n por &aacute;reas con jefes designados.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-report"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Solicitudes de Permiso</h5>
+                                <span>Vacaciones, m&eacute;dicos, luto, maternidad y m&aacute;s.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-tour"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Turnos de Guardia</h5>
+                                <span>Ma&ntilde;ana, tarde y noche con intercambio visual.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-content"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Sustituciones</h5>
+                                <span>Control de reemplazos con flujo de aprobaci&oacute;n.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-app"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Calendario</h5>
+                                <span>Vista general de turnos y permisos asignados.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-high-tech"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Dashboard</h5>
+                                <span>Estad&iacute;sticas, gr&aacute;ficos y ausentismo en tiempo real.</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="single-services text-center mb-30">
+                            <div class="services-ion">
+                                <span class="flaticon-curriculum-vitae"></span>
+                            </div>
+                            <div class="services-cap">
+                                <h5>Reportes</h5>
+                                <span>Informes descargables con c&oacute;digo QR.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="browse-btn2 text-center mt-50">
+                            {% if user.is_authenticated %}
+                                <a href="{% url 'Vacaciones:dashboard' %}" class="border-btn2">Ir al Dashboard</a>
+                            {% else %}
+                                <a href="{% url 'login' %}" class="border-btn2">Iniciar Sesi&oacute;n</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Our Services End -->
+
+        <!-- Online CV Area Start -->
+        <div class="online-cv cv-bg section-overly pt-90 pb-120" data-background="{% static 'assets/img/gallery/cv_bg.jpg' %}">
+            <div class="container">
+                <div class="row justify-content-center">
+                    <div class="col-xl-10">
+                        <div class="cv-caption text-center">
+                            <p class="pera1">Sistema de Recursos Humanos</p>
+                            <p class="pera2">Gesti&oacute;n Profesional de Turnos y Vacaciones</p>
+                            {% if not user.is_authenticated %}
+                                <a href="{% url 'login' %}" class="border-btn2 border-btn4">Iniciar Sesi&oacute;n</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Online CV Area End -->
+
+        <!-- How Apply Process Start -->
+        <div class="apply-process-area apply-bg pt-150 pb-150" data-background="{% static 'assets/img/gallery/how-applybg.png' %}" id="como-funciona">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="section-tittle white-text text-center">
+                            <span>C&oacute;mo Funciona</span>
+                            <h2>Pasos para Comezar</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-lg-4 col-md-6">
+                        <div class="single-process text-center mb-30">
+                            <div class="process-ion">
+                                <span class="flaticon-search"></span>
+                            </div>
+                            <div class="process-cap">
+                                <h5>1. Inicie Sesi&oacute;n</h5>
+                                <p>Acceda de forma segura con sus credenciales de administrador para entrar al sistema.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6">
+                        <div class="single-process text-center mb-30">
+                            <div class="process-ion">
+                                <span class="flaticon-curriculum-vitae"></span>
+                            </div>
+                            <div class="process-cap">
+                                <h5>2. Gestione el Personal</h5>
+                                <p>Registre empleados, asigne turnos de guardia y gestione las solicitudes de permiso y vacaciones.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4 col-md-6">
+                        <div class="single-process text-center mb-30">
+                            <div class="process-ion">
+                                <span class="flaticon-tour"></span>
+                            </div>
+                            <div class="process-cap">
+                                <h5>3. Monitoree y Reporte</h5>
+                                <p>Revise el calendario, apruebe permisos, gestione sustituciones y genere reportes con estad&iacute;sticas.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- How Apply Process End -->
+
+        <!-- Support Company Start -->
+        <div class="support-company-area support-padding fix" id="nosotros">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-xl-6 col-lg-6">
+                        <div class="right-caption">
+                            <div class="section-tittle section-tittle2">
+                                <span>Sobre el Sistema</span>
+                                <h2>Gesti&oacute;n Profesional de Recursos Humanos</h2>
+                            </div>
+                            <div class="support-caption">
+                                <p class="pera-top">Una plataforma dise&ntilde;ada para optimizar la administraci&oacute;n de personal, turnos de guardia, vacaciones y permisos de una empresa moderna.</p>
+                                <p>El sistema permite controlar el ausentismo por departamento, gestionar sustituciones entre empleados, visualizar el calendario de turnos y generar reportes ejecutivos con c&oacute;digo QR.</p>
+                                {% if user.is_authenticated %}
+                                    <a href="{% url 'Vacaciones:dashboard' %}" class="btn post-btn">Ir al Dashboard</a>
+                                {% else %}
+                                    <a href="{% url 'login' %}" class="btn post-btn">Iniciar Sesi&oacute;n</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-6 col-lg-6">
+                        <div class="support-location-img">
+                            <img src="{% static 'assets/img/service/support-img.jpg' %}" alt="Sistema RRHH">
+                            <div class="support-img-cap text-center">
+                                <p>Desde</p>
+                                <span>2026</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Support Company End -->
+    </main>
+
+    <footer>
+        <div class="footer-area footer-bg footer-padding">
+            <div class="container">
+                <div class="row footer-wejed justify-content-between">
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-6">
+                        <div class="footer-logo mb-20">
+                            <a href="{% url 'Vacaciones:index' %}"><img src="{% static 'assets/img/logo/logo2_footer.png' %}" alt="Logo"></a>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-5">
+                        <div class="footer-tittle-bottom">
+                            <span>50+</span>
+                            <p>Empleados</p>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-5">
+                        <div class="footer-tittle-bottom">
+                            <span>5</span>
+                            <p>Departamentos</p>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-lg-3 col-md-4 col-sm-5">
+                        <div class="footer-tittle-bottom">
+                            <span>30+</span>
+                            <p>Turnos Activos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom-area footer-bg">
+            <div class="container">
+                <div class="footer-border">
+                    <div class="row d-flex justify-content-between align-items-center">
+                        <div class="col-xl-10 col-lg-10">
+                            <div class="footer-copy-right">
+                                <p>Copyright &copy;<script>document.write(new Date().getFullYear());</script> Sistema de Gesti&oacute;n de Recursos Humanos.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JS here -->
+    <script src="{% static 'assets/js/vendor/modernizr-3.5.0.min.js' %}"></script>
+    <script src="{% static 'assets/js/vendor/jquery-1.12.4.min.js' %}"></script>
+    <script src="{% static 'assets/js/popper.min.js' %}"></script>
+    <script src="{% static 'assets/js/bootstrap.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.slicknav.min.js' %}"></script>
+    <script src="{% static 'assets/js/owl.carousel.min.js' %}"></script>
+    <script src="{% static 'assets/js/slick.min.js' %}"></script>
+    <script src="{% static 'assets/js/price_rangs.js' %}"></script>
+    <script src="{% static 'assets/js/wow.min.js' %}"></script>
+    <script src="{% static 'assets/js/animated.headline.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.magnific-popup.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.scrollUp.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.nice-select.min.js' %}"></script>
+    <script src="{% static 'assets/js/jquery.sticky.js' %}"></script>
+    <script src="{% static 'assets/js/plugins.js' %}"></script>
+    <script src="{% static 'assets/js/main.js' %}"></script>
+</body>
+</html>
