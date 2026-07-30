@@ -3,3 +3,4 @@ __pycache__/
 .env
 staticfiles/
 requirements-fedora-backup.txt
+datos_locales.json

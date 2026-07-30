@@ -86,34 +86,94 @@
     <!-- Section 4: Enviar reporte por correo -->
     <div class="card shadow mb-5 no-print">
         <div class="card-header py-3">
-            <h5 class="mb-0 font-weight-bold text-success"><i class="fas fa-envelope mr-2"></i> Enviar Reporte por Correo Electrónico</h5>
+            <h5 class="mb-0 font-weight-bold text-success">
+                <i class="fas fa-envelope mr-2"></i>
+                Enviar Reporte por Correo Electrónico
+            </h5>
         </div>
+
         <div class="card-body">
+
             <div class="row justify-content-center">
+
                 <div class="col-lg-8 col-md-10">
-                    <div class="alert alert-info text-center mb-4">
-                        <i class="fas fa-info-circle mr-2"></i>
-                        Ingresa una dirección de correo electrónico para poder remitirte el reporte en formato PDF.
+
+                    <div class="alert alert-info">
+
+                        <h6>
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Información importante
+                        </h6>
+
+                        <p class="mb-2">
+                            El sistema envía el reporte en formato PDF mediante un servicio de correo
+                            electrónico integrado con la aplicación.
+                        </p>
+
+                        <p class="mb-2">
+                            <strong>Observación:</strong>
+                            Debido a que esta aplicación está desplegada en el
+                            <strong>plan gratuito de Render</strong>, el servicio de envío de correos
+                            funciona en modo de pruebas (Testing). Por esta razón, únicamente es posible
+                            enviar reportes al correo autorizado:
+                        </p>
+
+                        <div class="text-center">
+                            <span class="badge badge-success p-2">
+                                lisbeth.taco4547@utc.edu.ec
+                            </span>
+                        </div>
+
+                        <p class="mt-3 mb-0">
+                            Para permitir el envío a cualquier dirección de correo será necesario
+                            utilizar un dominio verificado o un servicio de alojamiento que permita
+                            envíos de correo sin esta restricción.
+                        </p>
+
                     </div>
+
                     <div class="form-row align-items-end">
+
                         <div class="col-md-8 mb-2 mb-md-0">
-                            <label for="emailReporte" class="sr-only">Correo electrónico</label>
-                            <input type="email" class="form-control form-control-lg" id="emailReporte" placeholder="ejemplo@correo.com">
+
+                            <label for="emailReporte" class="sr-only">
+                                Correo electrónico
+                            </label>
+
+                            <input
+                                type="email"
+                                class="form-control form-control-lg"
+                                id="emailReporte"
+                                value="lisbeth.taco4547@utc.edu.ec"
+                                placeholder="ejemplo@correo.com">
+
                         </div>
+
                         <div class="col-md-4">
-                            <button type="button" class="btn btn-success btn-lg btn-block" id="btnEnviarReporte">
-                                <i class="fas fa-paper-plane mr-2"></i> Enviar
+
+                            <button
+                                type="button"
+                                class="btn btn-success btn-lg btn-block"
+                                id="btnEnviarReporte">
+
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Enviar Reporte
+
                             </button>
+
                         </div>
+
                     </div>
-                    
+
                 </div>
+
             </div>
+
         </div>
     </div>
 
-</div>
-{% endblock %}
+    </div>
+    {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
