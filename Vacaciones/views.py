@@ -14,6 +14,7 @@ import json
 from datetime import datetime, date, timedelta
 from io import BytesIO
 from django.db.models import Q, Count, Sum
+from django.db import IntegrityError
 from .models import Departamento, Empleado, SolicitudPermiso, TurnoGuardia, Sustitucion
 import os
 import base64
@@ -1188,7 +1189,7 @@ def sustitucion_rechazar(request, pk):
 
 @login_required(login_url='login')
 def calendario(request):
-    return render(request, 'Vacaciones/calendario.html')
+    return render(request, 'Vacaciones/calendario.html', {'is_admin': es_admin(request.user)})
 
 
 @login_required(login_url='login')
@@ -1427,7 +1428,6 @@ def api_calendar_events(request):
             'id': f'turno-{t.id}',
             'title': f'{t.empleado.nombre_completo} - {t.get_turno_display()}',
             'start': t.fecha.strftime('%Y-%m-%d'),
-            'end': t.fecha.strftime('%Y-%m-%d'),
             'color': colors.get(t.turno, '#17a2b8'),
             'type': 'turno',
         })
@@ -1443,12 +1443,71 @@ def api_calendar_events(request):
             'id': f'permiso-{p.id}',
             'title': f'{p.empleado.nombre_completo} - {p.get_tipo_display()}',
             'start': p.fecha_inicio.strftime('%Y-%m-%d'),
-            'end': p.fecha_fin.strftime('%Y-%m-%d'),
+            'end': (p.fecha_fin + timedelta(days=1)).strftime('%Y-%m-%d'),
             'color': color_map.get(p.estado, '#17a2b8'),
             'type': 'permiso',
         })
 
     return JsonResponse({'events': events})
+
+
+@csrf_exempt
+@login_required(login_url='login')
+def api_calendar_event_move(request):
+    if not es_admin(request.user):
+        return JsonResponse({'success': False, 'error': 'No autorizado'}, status=403)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Método no permitido'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'JSON inválido'}, status=400)
+
+    event_id = data.get('event_id', '')
+    new_start = data.get('new_start', '')
+
+    if not event_id:
+        return JsonResponse({'success': False, 'error': 'event_id requerido'}, status=400)
+
+    try:
+        nueva_fecha = datetime.strptime(new_start, '%Y-%m-%d').date()
+    except (ValueError, TypeError):
+        return JsonResponse({'success': False, 'error': 'Fecha de inicio inválida'}, status=400)
+
+    if event_id.startswith('turno-'):
+        try:
+            turno = TurnoGuardia.objects.get(pk=event_id.split('-', 1)[1])
+        except (TurnoGuardia.DoesNotExist, ValueError):
+            return JsonResponse({'success': False, 'error': 'Turno no encontrado'}, status=404)
+
+        if turno.fecha != nueva_fecha:
+            turno.fecha = nueva_fecha
+            try:
+                turno.save()
+            except IntegrityError:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Ya existe ese turno para el empleado en esa fecha'
+                }, status=409)
+
+        return JsonResponse({'success': True})
+
+    elif event_id.startswith('permiso-'):
+        try:
+            permiso = SolicitudPermiso.objects.get(pk=event_id.split('-', 1)[1])
+        except (SolicitudPermiso.DoesNotExist, ValueError):
+            return JsonResponse({'success': False, 'error': 'Permiso no encontrado'}, status=404)
+
+        duracion = (permiso.fecha_fin - permiso.fecha_inicio).days
+        permiso.fecha_inicio = nueva_fecha
+        permiso.fecha_fin = nueva_fecha + timedelta(days=duracion)
+        permiso.save()
+
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False, 'error': 'Tipo de evento desconocido'}, status=400)
 
 
 @csrf_exempt

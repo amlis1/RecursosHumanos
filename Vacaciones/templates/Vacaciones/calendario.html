@@ -71,10 +71,62 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonText: 'Cerrar'
             });
         },
+        editable: {{ is_admin|yesno:'true,false' }},
+        eventDragStart: function(info) {
+            info.el.style.cursor = 'grabbing';
+        },
+        eventDragStop: function(info) {
+            info.el.style.cursor = '';
+        },
+        eventDrop: function(info) {
+            guardarMovimiento(info);
+        },
+        eventResize: function(info) {
+            guardarMovimiento(info);
+        },
         height: 'auto'
     });
 
     calendar.render();
+
+    function guardarMovimiento(info) {
+        var event = info.event;
+        var newStart = event.startStr.slice(0, 10);
+        var newEnd = newStart;
+        if (event.end) {
+            var endDate = new Date(event.end);
+            endDate.setDate(endDate.getDate() - 1);
+            newEnd = endDate.toISOString().slice(0, 10);
+        }
+
+        $.ajax({
+            url: '{% url "Vacaciones:api_calendar_event_move" %}',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                event_id: event.id,
+                new_start: newStart,
+                new_end: newEnd
+            }),
+            success: function(res) {
+                Swal.fire({
+                    title: '¡Evento movido!',
+                    text: 'El cambio se guardó correctamente.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            },
+            error: function(xhr) {
+                info.revert();
+                var msg = 'No se pudo guardar el cambio.';
+                if (xhr.responseJSON && xhr.responseJSON.error) {
+                    msg = xhr.responseJSON.error;
+                }
+                Swal.fire('Error', msg, 'error');
+            }
+        });
+    }
 
     document.getElementById('start-tour').addEventListener('click', function() {
         const driverObj = window.driver.js ? window.driver.js.driver : window.driver;

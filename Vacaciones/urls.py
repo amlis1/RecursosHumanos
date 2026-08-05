@@ -38,6 +38,7 @@ urlpatterns = [
     path('reportes/enviar/', views.enviar_reporte, name='enviar_reporte'),
     # API endpoints
     path('api/calendar-events/', views.api_calendar_events, name='api_calendar_events'),
+    path('api/calendar-event-move/', views.api_calendar_event_move, name='api_calendar_event_move'),
     path('api/departamentos/', views.api_departamentos, name='api_departamentos'),
     path('api/empleados/', views.api_empleados, name='api_empleados'),
     path('api/ausentismo-departamento/', views.api_ausentismo_departamento, name='api_ausentismo_departamento'),

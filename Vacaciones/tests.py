@@ -111,3 +111,34 @@ class RRHHTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertIn('data', data)
+
+    def test_api_calendar_event_move_requires_admin(self):
+        url = reverse('Vacaciones:api_calendar_event_move')
+        payload = json.dumps({'event_id': f'turno-{self.turno1.id}', 'new_start': '2026-09-01'})
+        response = self.client.post(url, data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 403)
+
+    def test_api_calendar_event_move_turno(self):
+        admin = User.objects.create_superuser(username='admin', password='password123')
+        self.client.force_login(admin)
+
+        url = reverse('Vacaciones:api_calendar_event_move')
+        payload = json.dumps({'event_id': f'turno-{self.turno1.id}', 'new_start': '2026-09-01'})
+        response = self.client.post(url, data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        self.turno1.refresh_from_db()
+        self.assertEqual(self.turno1.fecha, date(2026, 9, 1))
+
+    def test_api_calendar_event_move_permiso_preserves_duration(self):
+        admin = User.objects.create_superuser(username='admin2', password='password123')
+        self.client.force_login(admin)
+
+        url = reverse('Vacaciones:api_calendar_event_move')
+        payload = json.dumps({'event_id': f'permiso-{self.permiso1.id}', 'new_start': '2026-09-05'})
+        response = self.client.post(url, data=payload, content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        self.permiso1.refresh_from_db()
+        self.assertEqual(self.permiso1.fecha_inicio, date(2026, 9, 5))
+        self.assertEqual(self.permiso1.fecha_fin, date(2026, 9, 14))
