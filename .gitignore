@@ -4,3 +4,7 @@ __pycache__/
 staticfiles/
 requirements-fedora-backup.txt
 datos_locales.json
+cert.pem
+cert_key.pem
+*.crt
+*.key

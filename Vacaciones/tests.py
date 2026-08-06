@@ -112,6 +112,14 @@ class RRHHTestCase(TestCase):
         data = response.json()
         self.assertIn('data', data)
 
+    def test_service_worker(self):
+        response = self.client.get(reverse('service_worker'))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('application/javascript', response['Content-Type'])
+        self.assertEqual(response['Service-Worker-Allowed'], '/')
+        content = response.content.decode()
+        self.assertIn('self.addEventListener', content)
+
     def test_api_calendar_event_move_requires_admin(self):
         url = reverse('Vacaciones:api_calendar_event_move')
         payload = json.dumps({'event_id': f'turno-{self.turno1.id}', 'new_start': '2026-09-01'})

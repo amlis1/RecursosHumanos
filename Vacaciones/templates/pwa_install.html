@@ -1,0 +1,289 @@
+{% load static %}
+<style>
+    #pwa-install-fab {
+        position: fixed;
+        right: 20px;
+        bottom: 20px;
+        z-index: 1050;
+        display: none;
+        align-items: center;
+        gap: 8px;
+        background: #1f2b7b;
+        color: #fff;
+        border: none;
+        border-radius: 50px;
+        padding: 12px 20px;
+        font-size: .95rem;
+        font-weight: 600;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+        cursor: pointer;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        transition: transform .15s ease, background .15s ease;
+    }
+    #pwa-install-fab:hover { background: #0d47a1; transform: translateY(-2px); }
+    #pwa-install-fab svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    #pwa-loading {
+        position: fixed;
+        inset: 0;
+        z-index: 1070;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(31, 43, 123, .55);
+        backdrop-filter: blur(2px);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #pwa-loading.show { display: flex; }
+    #pwa-loading .card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 28px 34px;
+        text-align: center;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .3);
+        max-width: 320px;
+    }
+    #pwa-loading .spinner {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 14px;
+        border: 5px solid #e3e6f5;
+        border-top-color: #1f2b7b;
+        border-radius: 50%;
+        animation: pwa-rot .8s linear infinite;
+    }
+    #pwa-loading .titulo { font-size: 1.05rem; font-weight: 700; color: #1f2b7b; }
+    #pwa-loading .detalle { font-size: .85rem; color: #666; margin-top: 4px; }
+    @keyframes pwa-rot { to { transform: rotate(360deg); } }
+
+    #pwa-update-banner {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1060;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        background: #212529;
+        color: #fff;
+        padding: 12px 16px;
+        font-size: .9rem;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    #pwa-update-banner .btn-update {
+        background: #28a745;
+        color: #fff;
+        border: none;
+        border-radius: 50px;
+        padding: 6px 16px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    #pwa-update-banner .btn-update:hover { background: #218838; }
+    #pwa-update-banner .btn-close {
+        background: transparent;
+        color: #ccc;
+        border: none;
+        font-size: 1.1rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+</style>
+
+<button id="pwa-install-fab" type="button" aria-label="Instalar aplicación">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+    </svg>
+    <span>Instalar App</span>
+</button>
+
+<div id="pwa-loading" role="status" aria-live="polite">
+    <div class="card">
+        <div class="spinner"></div>
+        <div class="titulo" id="pwa-loading-titulo">Descargando la aplicación...</div>
+        <div class="detalle">Recursos Humanos</div>
+    </div>
+</div>
+
+<div id="pwa-update-banner" role="status">
+    <span>Hay una nueva versión de la aplicación disponible.</span>
+    <button class="btn-update" type="button" id="pwa-update-btn">Actualizar</button>
+    <button class="btn-close" type="button" id="pwa-update-close" aria-label="Cerrar">&times;</button>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    var fab = document.getElementById('pwa-install-fab');
+    var banner = document.getElementById('pwa-update-banner');
+    var deferredPrompt = null;
+    var newSW = null;
+    var swSupported = 'serviceWorker' in navigator;
+
+    var isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator && navigator.standalone === true);
+
+    function showFab() { if (fab) { fab.style.display = 'flex'; } }
+    function hideFab() { if (fab) { fab.style.display = 'none'; } }
+
+    // El botón aparece en todos los dispositivos mientras la app no esté instalada.
+    if (!isStandalone) { showFab(); }
+
+    function mostrarCarga(titulo) {
+        var t = document.getElementById('pwa-loading-titulo');
+        if (t) { t.textContent = titulo || 'Descargando la aplicación...'; }
+        var el = document.getElementById('pwa-loading');
+        if (el) { el.classList.add('show'); }
+    }
+    function cerrarCarga() {
+        var el = document.getElementById('pwa-loading');
+        if (el) { el.classList.remove('show'); }
+    }
+
+    // IMPORTANTE: prompt() debe llamarse en el mismo gesto del usuario (síncrono).
+    // Si se llama dentro de un .then() o setTimeout, Chrome lo ignora y no pasa nada.
+    function iniciarInstalacion() {
+        if (!deferredPrompt) { return; }
+        var evt = deferredPrompt;
+        mostrarCarga('Descargando la aplicación...');
+        try {
+            evt.prompt();
+        } catch (e) {
+            cerrarCarga();
+            if (window.Swal) {
+                Swal.fire({
+                    title: 'No se pudo iniciar la descarga',
+                    text: 'Vuelve a presionar "Instalar App".',
+                    icon: 'error',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            }
+            return;
+        }
+        evt.userChoice.then(function (choice) {
+            deferredPrompt = null;
+            cerrarCarga();
+            if (window.Swal) {
+                if (choice && choice.outcome === 'accepted') {
+                    Swal.fire({
+                        title: '¡App instalada!',
+                        text: 'La aplicación ya está en tu dispositivo.',
+                        icon: 'success',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Instalación cancelada',
+                        text: 'Pulsa de nuevo "Instalar App" para intentarlo.',
+                        icon: 'info',
+                        timer: 2500,
+                        showConfirmButton: false
+                    });
+                }
+            }
+            hideFab();
+        });
+    }
+
+    function esperarInstalacion() {
+        mostrarCarga('Preparando la instalación...');
+        setTimeout(function () {
+            cerrarCarga();
+            if (deferredPrompt) {
+                iniciarInstalacion();
+                return;
+            }
+            if (window.Swal) {
+                Swal.fire({
+                    title: 'La instalación no está disponible aquí',
+                    text: 'Abre el menú del navegador (⋮ o ⋯) y elige "Instalar aplicación" o "Añadir a pantalla de inicio".',
+                    icon: 'info',
+                    confirmButtonText: 'Entendido'
+                });
+            }
+        }, 1500);
+    }
+
+    if (swSupported) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js').catch(function (err) {
+                console.error('Error registrando Service Worker:', err);
+            });
+        });
+
+        window.addEventListener('beforeinstallprompt', function (e) {
+            e.preventDefault();
+            deferredPrompt = e;
+            showFab();
+        });
+
+        window.addEventListener('appinstalled', function () {
+            deferredPrompt = null;
+            hideFab();
+        });
+
+        // Detecta que se descargó una nueva versión del Service Worker.
+        navigator.serviceWorker.ready.then(function (reg) {
+            reg.addEventListener('updatefound', function () {
+                newSW = reg.installing;
+                if (newSW) {
+                    newSW.addEventListener('statechange', function () {
+                        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+                            if (banner) { banner.style.display = 'flex'; }
+                        }
+                    });
+                }
+            });
+        });
+
+        var updateBtn = document.getElementById('pwa-update-btn');
+        if (updateBtn) {
+            updateBtn.addEventListener('click', function () {
+                if (newSW) { newSW.postMessage({ type: 'SKIP_WAITING' }); }
+            });
+        }
+
+        var closeBtn = document.getElementById('pwa-update-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function () { if (banner) { banner.style.display = 'none'; } });
+        }
+
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+            window.location.reload();
+        });
+    }
+
+    function instruccionesInstalar() {
+        if (!window.Swal) { return; }
+        var html = '<div class="text-left">Para instalar la app en tu iPhone/iPad:<br><br>' +
+            '1. Pulsa el botón <b>Compartir</b> (cuadro con flecha hacia arriba).<br>' +
+            '2. Toca <b>Añadir a pantalla de inicio</b>.<br>' +
+            '3. Pulsa <b>Añadir</b>.</div>';
+        Swal.fire({
+            title: 'Instalar la aplicación',
+            html: html,
+            icon: 'info',
+            confirmButtonText: 'Entendido'
+        });
+    }
+
+    if (fab) {
+        fab.addEventListener('click', function () {
+            if (deferredPrompt) {
+                iniciarInstalacion();
+            } else if (isIos) {
+                instruccionesInstalar();
+            } else {
+                esperarInstalacion();
+            }
+        });
+    }
+})();
+</script>

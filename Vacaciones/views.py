@@ -1565,3 +1565,18 @@ def api_vacaciones_pendientes(request):
 def api_empleado_detail(request, pk):
     empleado = get_object_or_404(Empleado, id=pk)
     return JsonResponse({'empleado': empleado.to_dict()})
+
+
+# ─── PWA (Service Worker) ────────────────────────────────────────────────────
+
+def service_worker(request):
+    sw_path = settings.BASE_DIR / "static" / "pwa" / "sw.js"
+    content = sw_path.read_text(encoding="utf-8")
+    content = content.replace("__PWA_VERSION__", getattr(settings, "PWA_CACHE_VERSION", "v1"))
+    response = HttpResponse(
+        content,
+        content_type="application/javascript; charset=utf-8",
+    )
+    response["Service-Worker-Allowed"] = "/"
+    response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response

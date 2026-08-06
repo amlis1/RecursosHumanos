@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sin conexión - Gestor RRHH</title>
+    <meta name="theme-color" content="#1f2b7b">
+    <link rel="stylesheet" href="/static/assets/css/bootstrap.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1f2b7b 0%, #0d47a1 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #fff;
+        }
+        .offline-card {
+            text-align: center;
+            padding: 2rem;
+            max-width: 420px;
+        }
+        .offline-card .icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .offline-card h1 {
+            font-size: 1.6rem;
+            margin-bottom: .75rem;
+        }
+        .offline-card p {
+            opacity: .9;
+            margin-bottom: 1.5rem;
+        }
+        .btn-retry {
+            background: #fff;
+            color: #1f2b7b;
+            border: 0;
+            border-radius: 50px;
+            padding: .6rem 1.75rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-card">
+        <div class="icon">&#128241;</div>
+        <h1>Estás sin conexión</h1>
+        <p>No se pudo cargar la página. Revisa tu conexión a internet e inténtalo de nuevo. La app guardada en tu dispositivo seguirá disponible cuando vuelvas a estar en línea.</p>
+        <button class="btn-retry" onclick="location.reload()">Reintentar</button>
+    </div>
+</body>
+</html>

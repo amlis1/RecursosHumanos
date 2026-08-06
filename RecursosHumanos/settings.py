@@ -223,13 +223,32 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 
 # =========================
-# HTTPS EN RENDER
+# HTTPS EN PRODUCCIÓN
 # =========================
+# El certificado SSL lo emite el proveedor de hosting (ej. Render, automático).
+# En producción se fuerza HTTPS: redirección, cookies seguras y HSTS.
 
 if not DEBUG:
     SECURE_PROXY_SSL_HEADER = (
         "HTTP_X_FORWARDED_PROTO",
         "https",
     )
+    SECURE_SSL_REDIRECT = os.environ.get(
+        "SECURE_SSL_REDIRECT", "True"
+    ).lower() == "true"
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_REFERRER_POLICY = "same-origin"
+    SECURE_HSTS_SECONDS = int(
+        os.environ.get("SECURE_HSTS_SECONDS", "31536000")
+    )
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# =========================
+# PWA
+# =========================
+
+# Nombre/versión usados para invalidar la caché del Service Worker.
+PWA_CACHE_VERSION = os.environ.get("PWA_CACHE_VERSION", "v1")

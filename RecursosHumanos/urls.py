@@ -11,6 +11,7 @@ urlpatterns = [
     path('logout/', vac_views.custom_logout, name='logout'),
     path('clear-welcome/', vac_views.clear_welcome_flag, name='clear_welcome'),
     path('tutorial-pasos/', vac_views.tutorial_pasos, name='tutorial_pasos'),
+    path('sw.js', vac_views.service_worker, name='service_worker'),
     path('', include('Vacaciones.urls')),
 ]
 
