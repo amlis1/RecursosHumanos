@@ -196,6 +196,14 @@
     var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
         (window.navigator && navigator.standalone === true);
 
+    // En celulares el botón flotante no se muestra: ahí se descarga la app
+    // desde la sección DESCARGANOS (Android APK / iPhone guía).
+    var esMovil = /android|iphone|ipad|ipod/i.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    // Marca "ya descargado en el celular" para no volver a mostrarlo.
+    var yaDescargado = false;
+    try { yaDescargado = localStorage.getItem('rrhh_descargado') === '1'; } catch (e) { /* sin almacenamiento */ }
+
     // Si venimos de un "reiniciar desde cero", al volver ofrecemos instalar
     // con una sola pulsación.
     var autoInstall = false;
@@ -207,8 +215,12 @@
     function showFab() { if (fab) { fab.style.display = 'flex'; } }
     function hideFab() { if (fab) { fab.style.display = 'none'; } }
 
-    // El botón aparece en todos los dispositivos mientras la app no esté instalada.
-    if (!isStandalone) { showFab(); }
+    // El botón aparece en la computadora mientras la app no esté instalada,
+    // pero nunca en celulares ni cuando ya se descargó o instaló.
+    function decideFab() {
+        if (esMovil || isStandalone || yaDescargado) { hideFab(); } else { showFab(); }
+    }
+    decideFab();
 
     function mostrarCarga(titulo) {
         var t = document.getElementById('pwa-loading-titulo');
@@ -346,7 +358,7 @@
         window.addEventListener('beforeinstallprompt', function (e) {
             e.preventDefault();
             deferredPrompt = e;
-            showFab();
+            decideFab();
             if (autoInstall) {
                 autoInstall = false;
                 ocultarTocaInstalar();
@@ -356,6 +368,7 @@
 
         window.addEventListener('appinstalled', function () {
             deferredPrompt = null;
+            try { localStorage.setItem('rrhh_descargado', '1'); } catch (e) { /* sin almacenamiento */ }
             ocultarTocaInstalar();
             hideFab();
         });

@@ -1587,7 +1587,7 @@ def service_worker(request):
 INSTALADORES = {
     "android": ("RecursosHumanos-Android.apk", "application/vnd.android.package-archive"),
     "windows": ("RecursosHumanos-Windows.exe", "application/octet-stream"),
-    "fedora": ("RecursosHumanos-Fedora", "application/octet-stream"),
+    "fedora": ("RecursosHumanos-Fedora.AppImage", "application/octet-stream"),
 }
 
 def descargar_instalador(request, sistema):

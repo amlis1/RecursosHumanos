@@ -504,6 +504,7 @@
                         });
                     }
                     if (result.value === 'android') {
+                        try { localStorage.setItem('rrhh_descargado', '1'); } catch (e) { /* sin almacenamiento */ }
                         window.location.href = '/instalar/android/';
                     } else if (result.value === 'ios') {
                         guiaIOS();
