@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST, require_GET
 from django.contrib.auth.decorators import login_required
@@ -1579,4 +1579,30 @@ def service_worker(request):
     )
     response["Service-Worker-Allowed"] = "/"
     response["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    return response
+
+
+# ─── Descarga de instaladores según el sistema operativo ─────────────────────
+
+INSTALADORES = {
+    "android": ("RecursosHumanos-Android.apk", "application/vnd.android.package-archive"),
+    "windows": ("RecursosHumanos-Windows.exe", "application/octet-stream"),
+    "fedora": ("RecursosHumanos-Fedora", "application/octet-stream"),
+}
+
+def descargar_instalador(request, sistema):
+    data = INSTALADORES.get(sistema)
+    if not data:
+        raise Http404
+    filename, content_type = data
+    path = settings.BASE_DIR / "static" / "instaladores" / filename
+    if not path.exists():
+        raise Http404
+    response = FileResponse(
+        path.open("rb"),
+        content_type=content_type,
+        as_attachment=True,
+        filename=filename,
+    )
+    response["Cache-Control"] = "no-store"
     return response

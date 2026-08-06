@@ -12,6 +12,7 @@ urlpatterns = [
     path('clear-welcome/', vac_views.clear_welcome_flag, name='clear_welcome'),
     path('tutorial-pasos/', vac_views.tutorial_pasos, name='tutorial_pasos'),
     path('sw.js', vac_views.service_worker, name='service_worker'),
+    path('instalar/<str:sistema>/', vac_views.descargar_instalador, name='descargar_instalador'),
     path('', include('Vacaciones.urls')),
 ]
 
