@@ -74,6 +74,46 @@
     #pwa-loading .detalle { font-size: .85rem; color: #666; margin-top: 4px; }
     @keyframes pwa-rot { to { transform: rotate(360deg); } }
 
+    #pwa-tap {
+        position: fixed;
+        inset: 0;
+        z-index: 1080;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #1f2b7b 0%, #0d47a1 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        cursor: pointer;
+    }
+    #pwa-tap.show { display: flex; }
+    #pwa-tap .card {
+        text-align: center;
+        color: #fff;
+        padding: 32px;
+        max-width: 320px;
+        animation: pwa-pop .4s ease;
+    }
+    #pwa-tap img {
+        width: 88px;
+        height: 88px;
+        border-radius: 22px;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
+        margin: 0 auto 18px;
+    }
+    #pwa-tap .titulo { font-size: 1.4rem; font-weight: 800; margin-bottom: 8px; }
+    #pwa-tap .detalle { font-size: 1rem; opacity: .92; }
+    #pwa-tap .pulsa {
+        display: inline-block;
+        margin-top: 22px;
+        background: #fff;
+        color: #1f2b7b;
+        border-radius: 50px;
+        padding: 14px 32px;
+        font-weight: 700;
+        font-size: 1.05rem;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+    }
+
     #pwa-update-banner {
         position: fixed;
         left: 0;
@@ -126,6 +166,15 @@
     </div>
 </div>
 
+<div id="pwa-tap" role="button" aria-label="Instalar aplicación">
+    <div class="card">
+        <img src="/static/pwa/icon-192.png" alt="Recursos Humanos">
+        <div class="titulo">Recursos Humanos</div>
+        <div class="detalle">La aplicación está lista para instalarse</div>
+        <div class="pulsa">TOCA PARA INSTALAR</div>
+    </div>
+</div>
+
 <div id="pwa-update-banner" role="status">
     <span>Hay una nueva versión de la aplicación disponible.</span>
     <button class="btn-update" type="button" id="pwa-update-btn">Actualizar</button>
@@ -146,6 +195,14 @@
         (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
         (window.navigator && navigator.standalone === true);
+
+    // Si venimos de un "reiniciar desde cero", al volver ofrecemos instalar
+    // con una sola pulsación.
+    var autoInstall = false;
+    try {
+        autoInstall = sessionStorage.getItem('rrhh_auto_install') === '1';
+        sessionStorage.removeItem('rrhh_auto_install');
+    } catch (e) { /* sin almacenamiento */ }
 
     function showFab() { if (fab) { fab.style.display = 'flex'; } }
     function hideFab() { if (fab) { fab.style.display = 'none'; } }
@@ -200,7 +257,7 @@
             if (choice && choice.outcome === 'accepted') {
                 // Muestra el mensaje de éxito y abre la aplicación automáticamente.
                 mostrarExito();
-                setTimeout(function () { window.location.href = '/'; }, 2500);
+                setTimeout(function () { window.location.href = '/'; }, 3500);
                 return;
             }
             cerrarCarga();
@@ -217,25 +274,66 @@
         });
     }
 
-    function esperarInstalacion() {
+    // En móvil sin prompt disponible: se da una oportunidad a que Chrome/Edge
+    // dispare beforeinstallprompt tras el toque y, si no, se reinicia desde cero.
+    function prepararInstalacionMovil() {
         mostrarCarga('Preparando la instalación...');
-        setTimeout(function () {
-            cerrarCarga();
+        var espera = 0;
+        var t = setInterval(function () {
+            espera += 500;
             if (deferredPrompt) {
+                clearInterval(t);
                 iniciarInstalacion();
                 return;
             }
-            if (window.Swal) {
-                Swal.fire({
-                    title: 'La instalación no está disponible aquí',
-                    text: 'Abre el menú del navegador (⋮ o ⋯) y elige "Instalar aplicación" o "Añadir a pantalla de inicio".',
-                    icon: 'info',
-                    confirmButtonText: 'Entendido'
-                });
-            } else {
-                window.alert('La instalación no está disponible aquí. Abre el menú del navegador (⋮ o ⋯) y elige "Instalar aplicación" o "Añadir a pantalla de inicio".');
+            if (espera >= 4000) {
+                clearInterval(t);
+                reiniciarDesdeCero();
             }
-        }, 1500);
+        }, 500);
+    }
+
+    // "Arrancar desde cero": limpia Service Worker y cachés y recarga la página
+    // para que el navegador vuelva a ofrecer la instalación.
+    function reiniciarDesdeCero() {
+        mostrarCarga('Reiniciando la aplicación...');
+        try { sessionStorage.setItem('rrhh_auto_install', '1'); } catch (e) { /* sin almacenamiento */ }
+        var tareas = [];
+        if (swSupported) {
+            tareas.push(navigator.serviceWorker.getRegistrations().then(function (regs) {
+                return Promise.all(regs.map(function (r) { return r.unregister(); }));
+            }).catch(function () {}));
+        }
+        if (window.caches) {
+            tareas.push(caches.keys().then(function (keys) {
+                return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+            }).catch(function () {}));
+        }
+        Promise.all(tareas).finally(function () {
+            window.location.reload();
+        });
+    }
+
+    function mostrarTocaInstalar() {
+        var el = document.getElementById('pwa-tap');
+        if (el) { el.classList.add('show'); }
+    }
+    function ocultarTocaInstalar() {
+        var el = document.getElementById('pwa-tap');
+        if (el) { el.classList.remove('show'); }
+    }
+
+    function avisoNoDisponible() {
+        if (window.Swal) {
+            Swal.fire({
+                title: 'La instalación no está disponible aquí',
+                text: 'Abre el menú del navegador (⋮ o ⋯) y elige "Instalar aplicación" o "Añadir a pantalla de inicio".',
+                icon: 'info',
+                confirmButtonText: 'Entendido'
+            });
+        } else {
+            window.alert('La instalación no está disponible aquí. Abre el menú del navegador (⋮ o ⋯) y elige "Instalar aplicación" o "Añadir a pantalla de inicio".');
+        }
     }
 
     if (swSupported) {
@@ -249,10 +347,16 @@
             e.preventDefault();
             deferredPrompt = e;
             showFab();
+            if (autoInstall) {
+                autoInstall = false;
+                ocultarTocaInstalar();
+                mostrarTocaInstalar();
+            }
         });
 
         window.addEventListener('appinstalled', function () {
             deferredPrompt = null;
+            ocultarTocaInstalar();
             hideFab();
         });
 
@@ -308,9 +412,31 @@
             } else if (isIos) {
                 instruccionesInstalar();
             } else {
-                esperarInstalacion();
+                prepararInstalacionMovil();
             }
         });
+    }
+
+    var tap = document.getElementById('pwa-tap');
+    if (tap) {
+        tap.addEventListener('click', function () {
+            ocultarTocaInstalar();
+            if (deferredPrompt) {
+                iniciarInstalacion();
+            } else {
+                avisoNoDisponible();
+            }
+        });
+    }
+
+    // Si tras un reinicio el navegador no vuelve a ofrecer instalar, avisamos.
+    if (autoInstall && swSupported) {
+        setTimeout(function () {
+            if (autoInstall) {
+                autoInstall = false;
+                avisoNoDisponible();
+            }
+        }, 8000);
     }
 })();
 </script>
