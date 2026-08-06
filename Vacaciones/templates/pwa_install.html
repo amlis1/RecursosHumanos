@@ -52,6 +52,24 @@
         border-radius: 50%;
         animation: pwa-rot .8s linear infinite;
     }
+    #pwa-loading .check {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 14px;
+        border-radius: 50%;
+        background: #28a745;
+        color: #fff;
+        font-size: 2rem;
+        font-weight: 700;
+        line-height: 56px;
+        text-align: center;
+        display: none;
+        animation: pwa-pop .35s ease;
+    }
+    @keyframes pwa-pop {
+        0% { transform: scale(0); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+    }
     #pwa-loading .titulo { font-size: 1.05rem; font-weight: 700; color: #1f2b7b; }
     #pwa-loading .detalle { font-size: .85rem; color: #666; margin-top: 4px; }
     @keyframes pwa-rot { to { transform: rotate(360deg); } }
@@ -101,7 +119,8 @@
 
 <div id="pwa-loading" role="status" aria-live="polite">
     <div class="card">
-        <div class="spinner"></div>
+        <div class="spinner" id="pwa-spinner"></div>
+        <div class="check" id="pwa-check">&check;</div>
         <div class="titulo" id="pwa-loading-titulo">Descargando la aplicación...</div>
         <div class="detalle">Recursos Humanos</div>
     </div>
@@ -144,6 +163,16 @@
         var el = document.getElementById('pwa-loading');
         if (el) { el.classList.remove('show'); }
     }
+    function mostrarExito() {
+        var sp = document.getElementById('pwa-spinner');
+        var ch = document.getElementById('pwa-check');
+        var t = document.getElementById('pwa-loading-titulo');
+        if (sp) { sp.style.display = 'none'; }
+        if (ch) { ch.style.display = 'block'; }
+        if (t) { t.textContent = 'APLICACIÓN DESCARGADA, ABRIENDO APLICACIÓN'; }
+        var el = document.getElementById('pwa-loading');
+        if (el) { el.classList.add('show'); }
+    }
 
     // IMPORTANTE: prompt() debe llamarse en el mismo gesto del usuario (síncrono).
     // Si se llama dentro de un .then() o setTimeout, Chrome lo ignora y no pasa nada.
@@ -168,25 +197,21 @@
         }
         evt.userChoice.then(function (choice) {
             deferredPrompt = null;
+            if (choice && choice.outcome === 'accepted') {
+                // Muestra el mensaje de éxito y abre la aplicación automáticamente.
+                mostrarExito();
+                setTimeout(function () { window.location.href = '/'; }, 2500);
+                return;
+            }
             cerrarCarga();
             if (window.Swal) {
-                if (choice && choice.outcome === 'accepted') {
-                    Swal.fire({
-                        title: '¡App instalada!',
-                        text: 'La aplicación ya está en tu dispositivo.',
-                        icon: 'success',
-                        timer: 2500,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Instalación cancelada',
-                        text: 'Pulsa de nuevo "Instalar App" para intentarlo.',
-                        icon: 'info',
-                        timer: 2500,
-                        showConfirmButton: false
-                    });
-                }
+                Swal.fire({
+                    title: 'Instalación cancelada',
+                    text: 'Pulsa de nuevo "Instalar App" para intentarlo.',
+                    icon: 'info',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
             }
             hideFab();
         });
@@ -207,6 +232,8 @@
                     icon: 'info',
                     confirmButtonText: 'Entendido'
                 });
+            } else {
+                window.alert('La instalación no está disponible aquí. Abre el menú del navegador (⋮ o ⋯) y elige "Instalar aplicación" o "Añadir a pantalla de inicio".');
             }
         }, 1500);
     }
